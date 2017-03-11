@@ -1,0 +1,22 @@
+{
+  "name": "amphp/phpunit-util",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Niklas Keller",
+      "email": "me@kelunik.com"
+    }
+  ],
+  "support": {
+    "issues": "https://github.com/amphp/phpunit-util/issues"
+  },
+  "require": {
+    "amphp/amp": "^2@dev",
+    "phpunit/phpunit": "^6"
+  },
+  "autoload": {
+    "psr-4": {
+      "Amp\\PHPUnit\\": "src"
+    }
+  }
+}
