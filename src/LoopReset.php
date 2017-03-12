@@ -8,6 +8,6 @@ use PHPUnit\Framework\Test;
 
 class LoopReset extends BaseTestListener {
     public function endTest(Test $test, $time) {
-        Loop::set((new Loop\Factory)->create());
+        Loop::set((new Loop\DriverFactory)->create());
     }
 }
