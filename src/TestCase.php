@@ -16,7 +16,7 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
      * @return callable|\PHPUnit_Framework_MockObject_MockObject Object that is callable and expects to be called the
      *     given number of times.
      */
-    public function createCallback($count) {
+    public function createCallback(int $count): callable {
         $mock = $this->createMock(CallbackStub::class);
 
         $mock->expects($this->exactly($count))
@@ -29,10 +29,10 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
      * Asserts that the given callback takes no more than $maxRunTime to run.
      *
      * @param callable     $callback
-     * @param float        $maxRunTime
+     * @param int          $maxRunTime
      * @param mixed[]|null $args       Function arguments.
      */
-    public function assertRunTimeLessThan(callable $callback, $maxRunTime, array $args = null) {
+    public function assertRunTimeLessThan(callable $callback, int $maxRunTime, array $args = null) {
         $this->assertRunTimeBetween($callback, 0, $maxRunTime, $args);
     }
 
@@ -40,10 +40,10 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
      * Asserts that the given callback takes more than $minRunTime to run.
      *
      * @param callable     $callback
-     * @param float        $minRunTime
+     * @param int          $minRunTime
      * @param mixed[]|null $args       Function arguments.
      */
-    public function assertRunTimeGreaterThan(callable $callback, $minRunTime, array $args = null) {
+    public function assertRunTimeGreaterThan(callable $callback, int $minRunTime, array $args = null) {
         $this->assertRunTimeBetween($callback, $minRunTime, 0, $args);
     }
 
@@ -52,22 +52,22 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
      * Rounds to the nearest 100 ms.
      *
      * @param callable     $callback
-     * @param float        $minRunTime
-     * @param float        $maxRunTime
+     * @param int          $minRunTime
+     * @param int          $maxRunTime
      * @param mixed[]|null $args       Function arguments.
      */
-    public function assertRunTimeBetween(callable $callback, $minRunTime, $maxRunTime, array $args = null) {
+    public function assertRunTimeBetween(callable $callback, int $minRunTime, int $maxRunTime, array $args = null) {
         $start = \microtime(true);
 
         \call_user_func_array($callback, $args ?: []);
 
-        $runTime = \round(\microtime(true) - $start, self::RUNTIME_PRECISION);
+        $runTime = \round(\microtime(true) - $start, self::RUNTIME_PRECISION) * 1000;
 
         if (0 < $maxRunTime) {
             $this->assertLessThanOrEqual(
                 $maxRunTime,
                 $runTime,
-                \sprintf('The run time of %.2fs was greater than the max run time of %.2fs.', $runTime, $maxRunTime)
+                \sprintf('The run time of %dms was greater than the max run time of %dms.', $runTime, $maxRunTime)
             );
         }
 
@@ -75,7 +75,7 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
             $this->assertGreaterThanOrEqual(
                 $minRunTime,
                 $runTime,
-                \sprintf('The run time of %.2fs was less than the min run time of %.2fs.', $runTime, $minRunTime)
+                \sprintf('The run time of %dms was less than the min run time of %dms.', $runTime, $minRunTime)
             );
         }
     }
