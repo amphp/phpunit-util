@@ -28,22 +28,22 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
     /**
      * Asserts that the given callback takes no more than $maxRunTime to run.
      *
-     * @param callable     $callback
-     * @param int          $maxRunTime
-     * @param mixed[]|null $args       Function arguments.
+     * @param callable $callback
+     * @param int      $maxRunTime Max runtime allowed for the test to pass.
+     * @param mixed[]  $args       Function arguments.
      */
-    public function assertRunTimeLessThan(callable $callback, int $maxRunTime, array $args = null) {
+    public function assertRunTimeLessThan(callable $callback, int $maxRunTime, array $args = []) {
         $this->assertRunTimeBetween($callback, 0, $maxRunTime, $args);
     }
 
     /**
      * Asserts that the given callback takes more than $minRunTime to run.
      *
-     * @param callable     $callback
-     * @param int          $minRunTime
-     * @param mixed[]|null $args       Function arguments.
+     * @param callable $callback
+     * @param int      $minRunTime Minimum runtime allowed for the test to pass.
+     * @param mixed[]  $args       Function arguments.
      */
-    public function assertRunTimeGreaterThan(callable $callback, int $minRunTime, array $args = null) {
+    public function assertRunTimeGreaterThan(callable $callback, int $minRunTime, array $args = []) {
         $this->assertRunTimeBetween($callback, $minRunTime, 0, $args);
     }
 
@@ -51,17 +51,17 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
      * Asserts that the given callback takes between $minRunTime and $maxRunTime to execute.
      * Rounds to the nearest 100 ms.
      *
-     * @param callable     $callback
-     * @param int          $minRunTime
-     * @param int          $maxRunTime
-     * @param mixed[]|null $args       Function arguments.
+     * @param callable $callback
+     * @param int      $minRunTime Minimum runtime allowed for the test to pass.
+     * @param int      $maxRunTime Max runtime allowed for the test to pass.
+     * @param mixed[]  $args       Function arguments.
      */
-    public function assertRunTimeBetween(callable $callback, int $minRunTime, int $maxRunTime, array $args = null) {
+    public function assertRunTimeBetween(callable $callback, int $minRunTime, int $maxRunTime, array $args = []) {
         $start = \microtime(true);
 
-        \call_user_func_array($callback, $args ?: []);
+        $callback(...$args);
 
-        $runTime = \round(\microtime(true) - $start, self::RUNTIME_PRECISION) * 1000;
+        $runTime = (int) (\round(\microtime(true) - $start, self::RUNTIME_PRECISION) * 1000);
 
         if (0 < $maxRunTime) {
             $this->assertLessThanOrEqual(
