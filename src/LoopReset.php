@@ -7,14 +7,8 @@ use PHPUnit\Framework\BaseTestListener;
 use PHPUnit\Framework\Test;
 
 class LoopReset extends BaseTestListener {
-    private $previousDriver;
-
-    public function startTest(Test $test) {
-        $this->previousDriver = Loop::get();
-        Loop::set(new Loop\NativeDriver);
-    }
-
     public function endTest(Test $test, $time) {
-        Loop::set($this->previousDriver);
+        Loop::set((new Loop\DriverFactory)->create());
+        gc_collect_cycles(); // extensions using an event loop may otherwise leak the file descriptors to the loop
     }
 }
