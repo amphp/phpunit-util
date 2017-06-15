@@ -1,24 +1,27 @@
 {
-  "name": "amphp/phpunit-util",
-  "license": "MIT",
-  "authors": [
-    {
-      "name": "Niklas Keller",
-      "email": "me@kelunik.com"
+    "name": "amphp/phpunit-util",
+    "homepage": "http://amphp.org/phpunit-util",
+    "description": "Helper package to ease testing with PHPUnit.",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Niklas Keller",
+            "email": "me@kelunik.com"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/amphp/phpunit-util/issues",
+        "irc": "irc://irc.freenode.org/amphp"
+    },
+    "require": {
+        "phpunit/phpunit": "^6"
+    },
+    "require-dev": {
+        "amphp/amp": "^2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Amp\\PHPUnit\\": "src"
+        }
     }
-  ],
-  "support": {
-    "issues": "https://github.com/amphp/phpunit-util/issues"
-  },
-  "require": {
-    "phpunit/phpunit": "^6"
-  },
-  "require-dev": {
-    "amphp/amp": "^2@dev"
-  },
-  "autoload": {
-    "psr-4": {
-      "Amp\\PHPUnit\\": "src"
-    }
-  }
 }
