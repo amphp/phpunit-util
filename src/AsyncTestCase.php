@@ -7,12 +7,9 @@
 
 namespace Amp\PHPUnit;
 
-use Amp\Coroutine;
 use Amp\Loop;
-use Amp\Promise;
-use Amp\Success;
 use PHPUnit\Framework\TestCase as PHPUnitTestCase;
-use Generator;
+use function Amp\call;
 
 abstract class AsyncTestCase extends PHPUnitTestCase {
 
@@ -23,13 +20,9 @@ abstract class AsyncTestCase extends PHPUnitTestCase {
                 Loop::stop();
                 $this->fail('Expected test to complete before ' . $testTimeout . 'ms time limit');
             });
-            $promise = parent::runTest();
-            if ($promise instanceof Generator) {
-                $promise = new Coroutine($promise);
-            } elseif (!$promise instanceof Promise) {
-                $promise = new Success($promise);
-            }
-            yield $promise;
+            yield call(function() {
+                return parent::runTest();
+            });
             Loop::cancel($watcherId);
         });
     }
