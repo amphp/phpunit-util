@@ -8,6 +8,10 @@ use Amp\PHPUnit\AsyncTestCase;
 
 class AsyncTestCaseTest extends AsyncTestCase {
 
+    public function setUp() {
+        $this->timeout(1500);
+    }
+
     public function testThatMethodRunsInLoopContext() {
         $returnDeferred = new Deferred(); // make sure our test runs to completion
         $testDeferred = new Deferred(); // used by our defer callback to ensure we're running on the Loop

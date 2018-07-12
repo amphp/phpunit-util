@@ -13,22 +13,29 @@ use function Amp\Promise\wait;
  */
 abstract class AsyncTestCase extends PHPUnitTestCase {
 
-    public function runTest() {
-        $testTimeout = $this->getTestTimeout();
-        $watcherId = Loop::delay($testTimeout, function() use($testTimeout) {
-            Loop::stop();
-            $this->fail('Expected test to complete before ' . $testTimeout . 'ms time limit');
-        });
+    private $timeoutId;
 
-        $returnValue = wait(call(function() {
-            return parent::runTest();
-        }));
-        Loop::cancel($watcherId);
+    public function runTest() {
+        $returnValue = null;
+        try {
+            $returnValue = wait(call(function() {
+                return parent::runTest();
+            }));
+            if (isset($this->timeoutId)) {
+                Loop::cancel($this->timeoutId);
+            }
+        } catch (\Throwable $error) {
+            $this->fail($error);
+        }
+
         return $returnValue;
     }
 
-    protected function getTestTimeout() : int {
-        return 1500;
+    protected function timeout(int $timeout) {
+        $this->timeoutId = Loop::delay($timeout, function() use($timeout) {
+            Loop::stop();
+            $this->fail('Expected test to complete before ' . $timeout . 'ms time limit');
+        });
     }
 
 }
