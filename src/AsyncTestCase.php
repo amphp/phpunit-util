@@ -16,16 +16,11 @@ abstract class AsyncTestCase extends PHPUnitTestCase {
     private $timeoutId;
 
     public function runTest() {
-        $returnValue = null;
-        try {
-            $returnValue = wait(call(function() {
-                return parent::runTest();
-            }));
-            if (isset($this->timeoutId)) {
-                Loop::cancel($this->timeoutId);
-            }
-        } catch (\Throwable $error) {
-            $this->fail($error);
+        $returnValue = wait(call(function() {
+            return parent::runTest();
+        }));
+        if (isset($this->timeoutId)) {
+            Loop::cancel($this->timeoutId);
         }
 
         return $returnValue;
