@@ -8,6 +8,13 @@ use PHPUnit\Framework\Test;
 
 class LoopReset extends BaseTestListener
 {
+    public function startTest(Test $test)
+    {
+        Loop::setErrorHandler(function (\Throwable $error) {
+            \trigger_error((string) $error, \E_USER_ERROR);
+        });
+    }
+
     public function endTest(Test $test, $time)
     {
         gc_collect_cycles(); // extensions using an event loop may otherwise leak the file descriptors to the loop
