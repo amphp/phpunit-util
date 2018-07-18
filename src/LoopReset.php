@@ -23,6 +23,16 @@ class LoopReset extends BaseTestListener
 
     public function endTest(Test $test, $time)
     {
+        (function () {
+            $this->run(function () {
+                // do nothing
+            });
+        })->bindTo($GLOBALS["__amp_scheduler"], \get_class($GLOBALS['__amp_scheduler']))();
+
+        if (\count($GLOBALS["__amp_scheduler"]) !== 0) {
+            \trigger_error("Test case left " . \count($GLOBALS["__amp_scheduler"]) . " pending async tasks", \E_USER_ERROR);
+        }
+
         gc_collect_cycles(); // extensions using an event loop may otherwise leak the file descriptors to the loop
 
         if ($this->countWatchers() - $this->watcherCount !== 0) {
@@ -31,7 +41,7 @@ class LoopReset extends BaseTestListener
         }
     }
 
-    private function countWatchers()
+    private function countWatchers(): int
     {
         $info = Loop::getInfo();
         $total = 0;
