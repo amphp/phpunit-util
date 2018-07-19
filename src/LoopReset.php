@@ -3,16 +3,21 @@
 namespace Amp\PHPUnit;
 
 use Amp\Loop;
+use Amp\Internal\Scheduler;
+use Concurrent\TaskScheduler;
 use PHPUnit\Framework\BaseTestListener;
 use PHPUnit\Framework\Test;
 
 class LoopReset extends BaseTestListener
 {
+    private $scheduler;
     private $watcherCount;
     private $previousInfo;
 
     public function startTest(Test $test)
     {
+        TaskScheduler::register($this->scheduler = new Scheduler);
+
         Loop::setErrorHandler(function (\Throwable $error) {
             \trigger_error((string) $error, \E_USER_ERROR);
         });
@@ -23,15 +28,7 @@ class LoopReset extends BaseTestListener
 
     public function endTest(Test $test, $time)
     {
-        (function () {
-            $this->run(function () {
-                // do nothing
-            });
-        })->bindTo($GLOBALS["__amp_scheduler"], \get_class($GLOBALS['__amp_scheduler']))();
-
-        if (\count($GLOBALS["__amp_scheduler"]) !== 0) {
-            \trigger_error("Test case left " . \count($GLOBALS["__amp_scheduler"]) . " pending async tasks", \E_USER_ERROR);
-        }
+        TaskScheduler::unregister($this->scheduler);
 
         gc_collect_cycles(); // extensions using an event loop may otherwise leak the file descriptors to the loop
 
