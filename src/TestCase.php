@@ -2,6 +2,9 @@
 
 namespace Amp\PHPUnit;
 
+use Amp\Internal\Scheduler;
+use Concurrent\TaskScheduler;
+
 /**
  * Abstract test class with methods for creating callbacks and asserting runtimes.
  */
@@ -59,7 +62,14 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
     public function assertRunTimeBetween(callable $callback, int $minRunTime, int $maxRunTime, array $args = []) {
         $start = \microtime(true);
 
-        $callback(...$args);
+        $scheduler = new Scheduler;
+        TaskScheduler::register($scheduler);
+
+        try {
+            $callback(...$args);
+        } finally {
+            TaskScheduler::unregister($scheduler);
+        }
 
         $runTime = (int) (\round(\microtime(true) - $start, self::RUNTIME_PRECISION) * 1000);
 
