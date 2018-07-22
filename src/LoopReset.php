@@ -2,8 +2,9 @@
 
 namespace Amp\PHPUnit;
 
-use Amp\Loop;
 use Amp\Internal\Scheduler;
+use Amp\Loop;
+use Amp\Loop\TracingDriver;
 use Concurrent\TaskScheduler;
 use PHPUnit\Framework\BaseTestListener;
 use PHPUnit\Framework\Test;
@@ -34,7 +35,14 @@ class LoopReset extends BaseTestListener
 
         if ($this->countWatchers() - $this->watcherCount !== 0) {
             $infoDiff = $this->calculateInfoDiff($this->previousInfo);
-            \trigger_error("Event loop has remaining watchers after test: " . \json_encode($infoDiff, \JSON_PRETTY_PRINT), \E_USER_WARNING);
+            $info = \json_encode($infoDiff, \JSON_PRETTY_PRINT);
+
+            $loop = Loop::get();
+            if ($loop instanceof TracingDriver) {
+                $info .= "\r\n\r\n" . $loop->getDump();
+            }
+
+            \trigger_error("Event loop has remaining watchers after test: " . $info, \E_USER_WARNING);
         }
     }
 
