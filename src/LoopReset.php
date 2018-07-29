@@ -17,11 +17,8 @@ class LoopReset extends BaseTestListener
 
     public function startTest(Test $test)
     {
+        Loop::set((new Loop\DriverFactory)->create());
         TaskScheduler::register($this->scheduler = new Scheduler);
-
-        Loop::setErrorHandler(function (\Throwable $error) {
-            \trigger_error((string) $error, \E_USER_ERROR);
-        });
 
         $this->watcherCount = $this->countWatchers();
         $this->previousInfo = Loop::getInfo();
@@ -30,8 +27,10 @@ class LoopReset extends BaseTestListener
     public function endTest(Test $test, $time)
     {
         TaskScheduler::unregister($this->scheduler);
+        \gc_collect_cycles(); // extensions using an event loop may otherwise leak the file descriptors to the loop
 
-        gc_collect_cycles(); // extensions using an event loop may otherwise leak the file descriptors to the loop
+        Loop::set(new Loop\GarbageCollectionDriver);
+        \gc_collect_cycles();
 
         if ($this->countWatchers() - $this->watcherCount !== 0) {
             $infoDiff = $this->calculateInfoDiff($this->previousInfo);
