@@ -23,10 +23,6 @@ class LoopReset extends BaseTestListener
             \trigger_error((string) $error, \E_USER_ERROR);
         });
 
-        if (\function_exists('Amp\\Parallel\\Worker\\pool')) {
-            \Amp\Parallel\Worker\pool(new \Amp\Parallel\Worker\DefaultPool);
-        }
-
         $this->watcherCount = $this->countWatchers();
         $this->previousInfo = Loop::getInfo();
     }
@@ -35,16 +31,7 @@ class LoopReset extends BaseTestListener
     {
         TaskScheduler::unregister($this->scheduler);
 
-        \gc_collect_cycles(); // extensions using an event loop may otherwise leak the file descriptors to the loop
-
-        if (\function_exists('Amp\\Parallel\\Worker\\pool')) {
-            $pool = \Amp\Parallel\Worker\pool();
-            if ($pool->isRunning()) {
-                $pool->shutdown();
-            }
-
-            \gc_collect_cycles();
-        }
+        gc_collect_cycles(); // extensions using an event loop may otherwise leak the file descriptors to the loop
 
         if ($this->countWatchers() - $this->watcherCount !== 0) {
             $infoDiff = $this->calculateInfoDiff($this->previousInfo);
