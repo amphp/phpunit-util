@@ -14,10 +14,11 @@
         "irc": "irc://irc.freenode.org/amphp"
     },
     "require": {
+        "concurrent-php/async-api": "dev-master",
         "phpunit/phpunit": "^6"
     },
     "require-dev": {
-        "amphp/amp": "^2"
+        "amphp/amp": "dev-ext-async"
     },
     "autoload": {
         "psr-4": {
