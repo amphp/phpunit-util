@@ -18,7 +18,7 @@ class AsyncTestCaseTest extends AsyncTestCase {
             $returnDeferred->resolve();
         });
         Loop::defer(function() use($testDeferred) {
-            $testDeferred->resolve('fooba');
+            $testDeferred->resolve('foobar');
         });
 
         return $returnDeferred->promise();
@@ -47,9 +47,27 @@ class AsyncTestCaseTest extends AsyncTestCase {
         };
 
         $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('threw the eror');
+        $this->expectExceptionMessage('threw the error');
 
         yield $throwException();
+    }
+
+    public function argumentSupportProvider() {
+        return [
+            ['foo', 42, true],
+        ];
+    }
+
+    /**
+     * @param string $foo
+     * @param int $bar
+     * @param bool $baz
+     * @dataProvider argumentSupportProvider
+     */
+    public function testArgumentSupport(string $foo, int $bar, bool $baz) {
+        $this->assertSame('foo', $foo);
+        $this->assertSame(42, $bar);
+        $this->assertTrue($baz);
     }
 
 }

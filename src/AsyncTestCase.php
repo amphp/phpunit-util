@@ -18,18 +18,18 @@ abstract class AsyncTestCase extends PHPUnitTestCase {
 
     public function setName($name) {
         $this->realTestName = $name;
-        parent::setName('asyncTest');
+        parent::setName('asyncRunTest');
     }
 
-    final public function asyncTest() {
+    final public function asyncRunTest(...$args) {
         parent::setName($this->realTestName);
-        $returnValue = wait(call(function() {
-            return $this->{$this->realTestName}();
-        }));
-        if (isset($this->timeoutId)) {
-            Loop::cancel($this->timeoutId);
-        }
-
+        $returnValue = null;
+        Loop::run(function() use(&$returnValue, $args) {
+            $returnValue = yield call([$this, $this->realTestName], ...$args);
+            if (isset($this->timeoutId)) {
+                Loop::cancel($this->timeoutId);
+            }
+        });
         return $returnValue;
     }
 
