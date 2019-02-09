@@ -2,15 +2,13 @@
 
 namespace Amp\PHPUnit\Test;
 
+use function Amp\call;
 use Amp\Deferred;
+use Amp\Delayed;
 use Amp\Loop;
 use Amp\PHPUnit\AsyncTestCase;
 
 class AsyncTestCaseTest extends AsyncTestCase {
-
-    public function setUp() {
-        $this->timeout(1500);
-    }
 
     public function testThatMethodRunsInLoopContext() {
         $returnDeferred = new Deferred(); // make sure our test runs to completion
@@ -20,7 +18,7 @@ class AsyncTestCaseTest extends AsyncTestCase {
             $returnDeferred->resolve();
         });
         Loop::defer(function() use($testDeferred) {
-            $testDeferred->resolve('foobar');
+            $testDeferred->resolve('fooba');
         });
 
         return $returnDeferred->promise();
@@ -38,6 +36,20 @@ class AsyncTestCaseTest extends AsyncTestCase {
         yield $testDeferred->promise();
 
         $this->assertTrue($testData->val, 'Expected our test to run on loop to completion');
+    }
+
+    public function testExpectingAnExceptionThrown() {
+        $throwException = function() {
+            return call(function() {
+                yield new Delayed(100);
+                throw new \Exception('threw the error');
+            });
+        };
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('threw the eror');
+
+        yield $throwException();
     }
 
 }

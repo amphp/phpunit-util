@@ -14,10 +14,17 @@ use function Amp\Promise\wait;
 abstract class AsyncTestCase extends PHPUnitTestCase {
 
     private $timeoutId;
+    private $realTestName;
 
-    public function runTest() {
+    public function setName($name) {
+        $this->realTestName = $name;
+        parent::setName('asyncTest');
+    }
+
+    final public function asyncTest() {
+        parent::setName($this->realTestName);
         $returnValue = wait(call(function() {
-            return parent::runTest();
+            return $this->{$this->realTestName}();
         }));
         if (isset($this->timeoutId)) {
             Loop::cancel($this->timeoutId);
