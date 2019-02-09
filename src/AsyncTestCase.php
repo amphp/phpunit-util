@@ -25,9 +25,12 @@ abstract class AsyncTestCase extends PHPUnitTestCase {
         parent::setName($this->realTestName);
         $returnValue = null;
         Loop::run(function() use(&$returnValue, $args) {
-            $returnValue = yield call([$this, $this->realTestName], ...$args);
-            if (isset($this->timeoutId)) {
-                Loop::cancel($this->timeoutId);
+            try {
+                $returnValue = yield call([$this, $this->realTestName], ...$args);
+            } finally {
+                if (isset($this->timeoutId)) {
+                    Loop::cancel($this->timeoutId);
+                }
             }
         });
         return $returnValue;
@@ -38,6 +41,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase {
             Loop::stop();
             $this->fail('Expected test to complete before ' . $timeout . 'ms time limit');
         });
+        Loop::unreference($this->timeoutId);
     }
 
 }
