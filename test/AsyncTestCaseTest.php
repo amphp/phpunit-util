@@ -80,7 +80,7 @@ class AsyncTestCaseTest extends AsyncTestCase
     public function testSetMinimumRunTime()
     {
         $this->setMinimumRuntime(100);
-        $func = function() {
+        $func = function () {
             yield new Delayed(110);
             return 'finished';
         };
