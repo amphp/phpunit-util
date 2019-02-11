@@ -19,24 +19,20 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 
     public function setName($name)
     {
-        parent::setName('runAsyncTest');
-
+        parent::setName($name);
         $this->realTestName = $name;
     }
 
-    public function getName($withDataSet = true)
+    protected function runTest()
     {
-        parent::setName($this->realTestName);
-
-        try {
-            return parent::getName($withDataSet);
-        } finally {
-            parent::setName('runAsyncTest');
-        }
+        parent::setName('runAsyncTest');
+        return parent::runTest();
     }
 
     final public function runAsyncTest(...$args)
     {
+        parent::setName($this->realTestName);
+
         $returnValue = null;
 
         try {
