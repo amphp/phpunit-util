@@ -77,7 +77,8 @@ class AsyncTestCaseTest extends AsyncTestCase
         $this->assertTrue($baz);
     }
 
-    public function testSetMinimumRunTime() {
+    public function testSetMinimumRunTime()
+    {
         $this->setMinimumRuntime(100);
         $func = function() {
             yield new Delayed(110);
