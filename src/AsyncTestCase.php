@@ -13,9 +13,13 @@ use function Amp\call;
 abstract class AsyncTestCase extends PHPUnitTestCase
 {
 
+    private const RUNTIME_PRECISION = 2;
+
     private $timeoutId;
 
     private $realTestName;
+
+    private $minimumRuntime;
 
     public function setName($name)
     {
@@ -38,7 +42,15 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         try {
             Loop::run(function () use (&$returnValue, $args) {
                 try {
+                    $start = \microtime(true);
                     $returnValue = yield call([$this, $this->realTestName], ...$args);
+                    $actualRuntime = (int) (\round(\microtime(true) - $start, self::RUNTIME_PRECISION) * 1000);
+                    if ($this->minimumRuntime) {
+                        if ($this->minimumRuntime > $actualRuntime) {
+                            $msg = 'Expected test to take at least %dms but instead took %dms';
+                            $this->fail(sprintf($msg, $this->minimumRuntime, $actualRuntime));
+                        }
+                    }
                 } finally {
                     if (isset($this->timeoutId)) {
                         Loop::cancel($this->timeoutId);
@@ -51,6 +63,11 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         }
 
         return $returnValue;
+    }
+
+    final protected function setMinimumRuntime(int $runtime)
+    {
+        $this->minimumRuntime = $runtime;
     }
 
     final protected function setTimeout(int $timeout)
