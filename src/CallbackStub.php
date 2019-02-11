@@ -2,6 +2,10 @@
 
 namespace Amp\PHPUnit;
 
-class CallbackStub {
-    public function __invoke() {}
+class CallbackStub
+{
+    public function __invoke()
+    {
+        // nothing
+    }
 }

@@ -5,7 +5,8 @@ namespace Amp\PHPUnit;
 /**
  * Abstract test class with methods for creating callbacks and asserting runtimes.
  */
-abstract class TestCase extends \PHPUnit\Framework\TestCase {
+abstract class TestCase extends \PHPUnit\Framework\TestCase
+{
     const RUNTIME_PRECISION = 2; // Number of decimals to use in runtime calculations/comparisons.
 
     /**
@@ -16,7 +17,8 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
      * @return callable|\PHPUnit_Framework_MockObject_MockObject Object that is callable and expects to be called the
      *     given number of times.
      */
-    public function createCallback(int $count): callable {
+    public function createCallback(int $count): callable
+    {
         $mock = $this->createMock(CallbackStub::class);
 
         $mock->expects($this->exactly($count))
@@ -30,21 +32,11 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
      *
      * @param callable $callback
      * @param int      $maxRunTime Max runtime allowed for the test to pass.
-     * @param mixed[]  $args       Function arguments.
+     * @param mixed[]  $args Function arguments.
      */
-    public function assertRunTimeLessThan(callable $callback, int $maxRunTime, array $args = []) {
+    public function assertRunTimeLessThan(callable $callback, int $maxRunTime, array $args = [])
+    {
         $this->assertRunTimeBetween($callback, 0, $maxRunTime, $args);
-    }
-
-    /**
-     * Asserts that the given callback takes more than $minRunTime to run.
-     *
-     * @param callable $callback
-     * @param int      $minRunTime Minimum runtime allowed for the test to pass.
-     * @param mixed[]  $args       Function arguments.
-     */
-    public function assertRunTimeGreaterThan(callable $callback, int $minRunTime, array $args = []) {
-        $this->assertRunTimeBetween($callback, $minRunTime, 0, $args);
     }
 
     /**
@@ -54,9 +46,10 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
      * @param callable $callback
      * @param int      $minRunTime Minimum runtime allowed for the test to pass.
      * @param int      $maxRunTime Max runtime allowed for the test to pass.
-     * @param mixed[]  $args       Function arguments.
+     * @param mixed[]  $args Function arguments.
      */
-    public function assertRunTimeBetween(callable $callback, int $minRunTime, int $maxRunTime, array $args = []) {
+    public function assertRunTimeBetween(callable $callback, int $minRunTime, int $maxRunTime, array $args = [])
+    {
         $start = \microtime(true);
 
         $callback(...$args);
@@ -81,13 +74,26 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase {
     }
 
     /**
+     * Asserts that the given callback takes more than $minRunTime to run.
+     *
+     * @param callable $callback
+     * @param int      $minRunTime Minimum runtime allowed for the test to pass.
+     * @param mixed[]  $args Function arguments.
+     */
+    public function assertRunTimeGreaterThan(callable $callback, int $minRunTime, array $args = [])
+    {
+        $this->assertRunTimeBetween($callback, $minRunTime, 0, $args);
+    }
+
+    /**
      * Runs the given callback in a separate fork.
      *
      * @param callable $function
      *
      * @return int
      */
-    final protected function doInFork(callable $function) {
+    final protected function doInFork(callable $function)
+    {
         switch ($pid = \pcntl_fork()) {
             case -1:
                 $this->fail('Failed to fork process.');

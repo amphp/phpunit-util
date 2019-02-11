@@ -13,5 +13,7 @@ namespace Amp\PHPUnit;
  *     $this->assertSame($expectedExceptionInstance, $e);
  * }
  */
-class TestException extends \Exception {
+class TestException extends \Exception
+{
+    // nothing
 }

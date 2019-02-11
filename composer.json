@@ -17,7 +17,8 @@
         "phpunit/phpunit": "^6"
     },
     "require-dev": {
-        "amphp/amp": "^2"
+        "amphp/amp": "^2",
+        "amphp/php-cs-fixer-config": "dev-master"
     },
     "autoload": {
         "psr-4": {
