@@ -10,7 +10,6 @@ use function Amp\call;
 
 class AsyncTestCaseTest extends AsyncTestCase
 {
-
     public function testThatMethodRunsInLoopContext()
     {
         $returnDeferred = new Deferred(); // make sure our test runs to completion
