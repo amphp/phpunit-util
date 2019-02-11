@@ -7,6 +7,7 @@ use Amp\Delayed;
 use Amp\Loop;
 use Amp\PHPUnit\AsyncTestCase;
 use function Amp\call;
+use PHPUnit\Framework\AssertionFailedError;
 
 class AsyncTestCaseTest extends AsyncTestCase
 {
@@ -80,12 +81,12 @@ class AsyncTestCaseTest extends AsyncTestCase
     {
         $this->setMinimumRuntime(100);
         $func = function () {
-            yield new Delayed(110);
+            yield new Delayed(75);
             return 'finished';
         };
 
-        $finished = yield call($func);
-
-        $this->assertSame('finished', $finished);
+        $this->expectException(AssertionFailedError::class);
+        $this->expectExceptionMessageRegExp("/Expected test to take at least 100ms but instead took (\d+)ms/");
+        yield call($func);
     }
 }
