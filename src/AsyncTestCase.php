@@ -13,7 +13,7 @@ use function Amp\call;
 abstract class AsyncTestCase extends PHPUnitTestCase
 {
 
-    private const RUNTIME_PRECISION = 2;
+    const RUNTIME_PRECISION = 2;
 
     private $timeoutId;
 
