@@ -48,7 +48,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
                     if ($this->minimumRuntime) {
                         if ($this->minimumRuntime > $actualRuntime) {
                             $msg = 'Expected test to take at least %dms but instead took %dms';
-                            $this->fail(sprintf($msg, $this->minimumRuntime, $actualRuntime));
+                            $this->fail(\sprintf($msg, $this->minimumRuntime, $actualRuntime));
                         }
                     }
                 } finally {

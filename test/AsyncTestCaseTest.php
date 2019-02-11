@@ -89,5 +89,4 @@ class AsyncTestCaseTest extends AsyncTestCase
 
         $this->assertSame('finished', $finished);
     }
-
 }
