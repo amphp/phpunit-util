@@ -4,6 +4,8 @@ namespace Amp\PHPUnit;
 
 /**
  * Abstract test class with methods for creating callbacks and asserting runtimes.
+ *
+ * @deprecated Use AsyncTestCase instead.
  */
 abstract class TestCase extends \PHPUnit\Framework\TestCase
 {

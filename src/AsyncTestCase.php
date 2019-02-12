@@ -15,24 +15,31 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 {
     const RUNTIME_PRECISION = 2;
 
+    /** @var string|null Timeout watcher ID. */
     private $timeoutId;
 
+    /** @var string Temporary storage for actual test name. */
     private $realTestName;
 
-    private $minimumRuntime;
+    /** @var int Minimum runtime in milliseconds. */
+    private $minimumRuntime = 0;
 
-    public function setName($name)
+    /**
+     * @codeCoverageIgnore Invoked before code coverage data is being collected.
+     */
+    final public function setName($name)
     {
         parent::setName($name);
         $this->realTestName = $name;
     }
 
-    protected function runTest()
+    final protected function runTest()
     {
         parent::setName('runAsyncTest');
         return parent::runTest();
     }
 
+    /** @internal */
     final public function runAsyncTest(...$args)
     {
         parent::setName($this->realTestName);
@@ -65,11 +72,21 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         return $returnValue;
     }
 
+    /**
+     * Fails the test if the loop does not run for at least the given amount of time.
+     *
+     * @param int $runtime Required run time in milliseconds.
+     */
     final protected function setMinimumRuntime(int $runtime)
     {
         $this->minimumRuntime = $runtime;
     }
 
+    /**
+     * Fails the test (and stops the loop) after the given timeout.
+     *
+     * @param int $timeout Timeout in milliseconds.
+     */
     final protected function setTimeout(int $timeout)
     {
         $this->timeoutId = Loop::delay($timeout, function () use ($timeout) {

@@ -6,6 +6,9 @@ use Amp\Loop;
 use PHPUnit\Framework\BaseTestListener;
 use PHPUnit\Framework\Test;
 
+/**
+ * @deprecated Use AsyncTestCase. TestListeners are now deprecated in PHPUnit.
+ */
 class LoopReset extends BaseTestListener
 {
     public function endTest(Test $test, $time)

@@ -6,12 +6,13 @@ use Amp\Deferred;
 use Amp\Delayed;
 use Amp\Loop;
 use Amp\PHPUnit\AsyncTestCase;
+use Amp\Promise;
 use PHPUnit\Framework\AssertionFailedError;
 use function Amp\call;
 
 class AsyncTestCaseTest extends AsyncTestCase
 {
-    public function testThatMethodRunsInLoopContext()
+    public function testThatMethodRunsInLoopContext(): Promise
     {
         $returnDeferred = new Deferred(); // make sure our test runs to completion
         $testDeferred = new Deferred(); // used by our defer callback to ensure we're running on the Loop
@@ -26,7 +27,7 @@ class AsyncTestCaseTest extends AsyncTestCase
         return $returnDeferred->promise();
     }
 
-    public function testThatWeHandleNotPromiseReturned()
+    public function testThatWeHandleNotPromiseReturned(): \Generator
     {
         $testDeferred = new Deferred();
         $testData = new \stdClass();
@@ -41,7 +42,7 @@ class AsyncTestCaseTest extends AsyncTestCase
         $this->assertTrue($testData->val, 'Expected our test to run on loop to completion');
     }
 
-    public function testExpectingAnExceptionThrown()
+    public function testExpectingAnExceptionThrown(): \Generator
     {
         $throwException = function () {
             return call(function () {
@@ -56,7 +57,7 @@ class AsyncTestCaseTest extends AsyncTestCase
         yield $throwException();
     }
 
-    public function argumentSupportProvider()
+    public function argumentSupportProvider(): array
     {
         return [
             ['foo', 42, true],
@@ -77,7 +78,17 @@ class AsyncTestCaseTest extends AsyncTestCase
         $this->assertTrue($baz);
     }
 
-    public function testSetMinimumRunTime()
+    public function testSetTimeout(): \Generator
+    {
+        $this->setTimeout(100);
+
+        $this->expectException(AssertionFailedError::class);
+        $this->expectExceptionMessage('Expected test to complete before 100ms time limit');
+
+        yield new Delayed(200);
+    }
+
+    public function testSetMinimumRunTime(): \Generator
     {
         $this->setMinimumRuntime(100);
         $func = function () {
