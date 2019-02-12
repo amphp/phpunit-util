@@ -3,6 +3,7 @@
 namespace Amp\PHPUnit;
 
 use Amp\Loop;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase as PHPUnitTestCase;
 use function Amp\call;
 
@@ -77,5 +78,24 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         });
 
         Loop::unreference($this->timeoutId);
+    }
+
+    /**
+     * @param int           $invocationCount Number of times the callback must be invoked or the test will fail.
+     * @param callable|null $returnCallback  Callable providing a return value for the callback.
+     *
+     * @return callable|MockObject Mock object having only an __invoke method.
+     */
+    final protected function createCallback(int $invocationCount, callable $returnCallback = null): callable
+    {
+        $mock = $this->createMock(CallbackStub::class);
+        $invocationMocker = $mock->expects($this->exactly($invocationCount))
+            ->method('__invoke');
+
+        if ($returnCallback) {
+            $invocationMocker->willReturnCallback($returnCallback);
+        }
+
+        return $mock;
     }
 }

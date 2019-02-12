@@ -89,4 +89,13 @@ class AsyncTestCaseTest extends AsyncTestCase
         $this->expectExceptionMessageRegExp("/Expected test to take at least 100ms but instead took (\d+)ms/");
         yield call($func);
     }
+
+    public function testCreateCallback()
+    {
+        $mock = $this->createCallback(1, function (int $value): int {
+            return $value + 1;
+        });
+
+        $this->assertSame(2, $mock(1));
+    }
 }
