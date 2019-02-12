@@ -6,8 +6,8 @@ use Amp\Deferred;
 use Amp\Delayed;
 use Amp\Loop;
 use Amp\PHPUnit\AsyncTestCase;
-use function Amp\call;
 use PHPUnit\Framework\AssertionFailedError;
+use function Amp\call;
 
 class AsyncTestCaseTest extends AsyncTestCase
 {
