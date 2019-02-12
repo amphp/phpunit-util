@@ -101,6 +101,12 @@ class AsyncTestCaseTest extends AsyncTestCase
         yield call($func);
     }
 
+    public function testSetMinimumRunTimeWithWatchersOnly()
+    {
+        $this->setMinimumRuntime(100);
+        Loop::delay(100, $this->createCallback(1));
+    }
+
     public function testCreateCallback()
     {
         $mock = $this->createCallback(1, function (int $value): int {

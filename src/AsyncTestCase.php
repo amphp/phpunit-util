@@ -47,23 +47,23 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         $returnValue = null;
 
         try {
+            $start = \microtime(true);
+
             Loop::run(function () use (&$returnValue, $args) {
                 try {
-                    $start = \microtime(true);
                     $returnValue = yield call([$this, $this->realTestName], ...$args);
-                    $actualRuntime = (int) (\round(\microtime(true) - $start, self::RUNTIME_PRECISION) * 1000);
-                    if ($this->minimumRuntime) {
-                        if ($this->minimumRuntime > $actualRuntime) {
-                            $msg = 'Expected test to take at least %dms but instead took %dms';
-                            $this->fail(\sprintf($msg, $this->minimumRuntime, $actualRuntime));
-                        }
-                    }
                 } finally {
                     if (isset($this->timeoutId)) {
                         Loop::cancel($this->timeoutId);
                     }
                 }
             });
+
+            $actualRuntime = (int) (\round(\microtime(true) - $start, self::RUNTIME_PRECISION) * 1000);
+            if ($this->minimumRuntime > $actualRuntime) {
+                $msg = 'Expected test to take at least %dms but instead took %dms';
+                $this->fail(\sprintf($msg, $this->minimumRuntime, $actualRuntime));
+            }
         } finally {
             Loop::set((new Loop\DriverFactory)->create());
             \gc_collect_cycles(); // extensions using an event loop may otherwise leak the file descriptors to the loop
