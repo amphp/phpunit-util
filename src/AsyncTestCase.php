@@ -24,6 +24,16 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     /** @var int Minimum runtime in milliseconds. */
     private $minimumRuntime = 0;
 
+    /** @var bool */
+    private $setUpInvoked = false;
+
+    protected function setUp()
+    {
+        $this->setUpInvoked = true;
+        Loop::set((new Loop\DriverFactory)->create());
+        \gc_collect_cycles(); // extensions using an event loop may otherwise leak the file descriptors to the loop
+    }
+
     /**
      * @codeCoverageIgnore Invoked before code coverage data is being collected.
      */
@@ -44,29 +54,32 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     {
         parent::setName($this->realTestName);
 
+        if (!$this->setUpInvoked) {
+            $this->fail(\sprintf(
+                '%s::setUp() overrides %s::setUp() without calling the parent method',
+                \str_replace("\0", '@', \get_class($this)), // replace NUL-byte in anonymous class name
+                self::class
+            ));
+        }
+
         $returnValue = null;
 
-        try {
-            $start = \microtime(true);
+        $start = \microtime(true);
 
-            Loop::run(function () use (&$returnValue, $args) {
-                try {
-                    $returnValue = yield call([$this, $this->realTestName], ...$args);
-                } finally {
-                    if (isset($this->timeoutId)) {
-                        Loop::cancel($this->timeoutId);
-                    }
+        Loop::run(function () use (&$returnValue, $args) {
+            try {
+                $returnValue = yield call([$this, $this->realTestName], ...$args);
+            } finally {
+                if (isset($this->timeoutId)) {
+                    Loop::cancel($this->timeoutId);
                 }
-            });
-
-            $actualRuntime = (int) (\round(\microtime(true) - $start, self::RUNTIME_PRECISION) * 1000);
-            if ($this->minimumRuntime > $actualRuntime) {
-                $msg = 'Expected test to take at least %dms but instead took %dms';
-                $this->fail(\sprintf($msg, $this->minimumRuntime, $actualRuntime));
             }
-        } finally {
-            Loop::set((new Loop\DriverFactory)->create());
-            \gc_collect_cycles(); // extensions using an event loop may otherwise leak the file descriptors to the loop
+        });
+
+        $actualRuntime = (int) (\round(\microtime(true) - $start, self::RUNTIME_PRECISION) * 1000);
+        if ($this->minimumRuntime > $actualRuntime) {
+            $msg = 'Expected test to take at least %dms but instead took %dms';
+            $this->fail(\sprintf($msg, $this->minimumRuntime, $actualRuntime));
         }
 
         return $returnValue;
