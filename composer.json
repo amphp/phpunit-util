@@ -7,6 +7,10 @@
         {
             "name": "Niklas Keller",
             "email": "me@kelunik.com"
+        },
+        {
+            "name": "Aaron Piotrowski",
+            "email": "aaron@trowski.com"
         }
     ],
     "support": {
@@ -14,7 +18,7 @@
         "irc": "irc://irc.freenode.org/amphp"
     },
     "require": {
-        "phpunit/phpunit": "^6"
+        "phpunit/phpunit": "^6 | ^7 | ^8"
     },
     "require-dev": {
         "amphp/amp": "^2",

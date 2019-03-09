@@ -13,35 +13,16 @@ use function Amp\call;
  */
 abstract class AsyncTestCase extends PHPUnitTestCase
 {
+    use Internal\AsyncTestSetNameTrait,
+        Internal\AsyncTestSetUpTrait;
+
     const RUNTIME_PRECISION = 2;
 
     /** @var string|null Timeout watcher ID. */
     private $timeoutId;
 
-    /** @var string Temporary storage for actual test name. */
-    private $realTestName;
-
     /** @var int Minimum runtime in milliseconds. */
     private $minimumRuntime = 0;
-
-    /** @var bool */
-    private $setUpInvoked = false;
-
-    protected function setUp()
-    {
-        $this->setUpInvoked = true;
-        Loop::set((new Loop\DriverFactory)->create());
-        \gc_collect_cycles(); // extensions using an event loop may otherwise leak the file descriptors to the loop
-    }
-
-    /**
-     * @codeCoverageIgnore Invoked before code coverage data is being collected.
-     */
-    final public function setName($name)
-    {
-        parent::setName($name);
-        $this->realTestName = $name;
-    }
 
     final protected function runTest()
     {
