@@ -24,6 +24,12 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     /** @var int Minimum runtime in milliseconds. */
     private $minimumRuntime = 0;
 
+    /** @var string Temporary storage for actual test name. */
+    private $realTestName;
+
+    /** @var bool */
+    private $setUpInvoked = false;
+
     final protected function runTest()
     {
         parent::setName('runAsyncTest');
