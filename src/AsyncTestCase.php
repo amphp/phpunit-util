@@ -8,13 +8,13 @@ use PHPUnit\Framework\TestCase as PHPUnitTestCase;
 use function Amp\call;
 
 /**
- * A PHPUnit TestCase intended to help facilitate writing async tests by running each test on the amphp Loop and
- * ensuring that the test runs until completion based on your test returning either a Promise or a Generator.
+ * A PHPUnit TestCase intended to help facilitate writing async tests by running each test as coroutine with Amp's
+ * event loop ensuring that the test runs until completion based on your test returning either a Promise or Generator.
  */
 abstract class AsyncTestCase extends PHPUnitTestCase
 {
-    use Internal\AsyncTestSetNameTrait,
-        Internal\AsyncTestSetUpTrait;
+    use Internal\AsyncTestSetNameTrait;
+    use Internal\AsyncTestSetUpTrait;
 
     const RUNTIME_PRECISION = 2;
 
