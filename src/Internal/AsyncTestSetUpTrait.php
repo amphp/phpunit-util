@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
 
 if ((new \ReflectionMethod(TestCase::class, 'setUp'))->hasReturnType()) {
     /**
-     * PHPUnit 8+
+     * PHPUnit 8+.
      *
      * @internal
      */
@@ -25,7 +25,7 @@ if ((new \ReflectionMethod(TestCase::class, 'setUp'))->hasReturnType()) {
     }
 } else {
     /**
-     * PHPUnit 6 or 7
+     * PHPUnit 6 or 7.
      *
      * @internal
      */
