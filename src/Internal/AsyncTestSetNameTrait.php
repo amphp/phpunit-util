@@ -5,7 +5,11 @@ namespace Amp\PHPUnit\Internal;
 use PHPUnit\Framework\TestCase;
 
 if ((new \ReflectionMethod(TestCase::class, 'setName'))->hasReturnType()) {
-    // PHPUnit 7+
+    /**
+     * PHPUnit 7+
+     *
+     * @internal
+     */
     trait AsyncTestSetNameTrait
     {
         /** @var string Temporary storage for actual test name. */
@@ -21,7 +25,11 @@ if ((new \ReflectionMethod(TestCase::class, 'setName'))->hasReturnType()) {
         }
     }
 } else {
-    // PHPUnit 6
+    /**
+     * PHPUnit 6
+     *
+     * @internal
+     */
     trait AsyncTestSetNameTrait
     {
         /** @var string Temporary storage for actual test name. */
