@@ -57,6 +57,15 @@ class AsyncTestCaseTest extends AsyncTestCase
         yield $throwException();
     }
 
+    public function testExpectingAnErrorThrown(): \Generator
+    {
+        $this->expectException(\Error::class);
+
+        yield call(function () {
+            throw new \Error;
+        });
+    }
+
     public function argumentSupportProvider(): array
     {
         return [
