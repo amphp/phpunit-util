@@ -53,15 +53,22 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 
         $start = \microtime(true);
 
-        Loop::run(function () use (&$returnValue, $args) {
+        Loop::run(function () use (&$returnValue, &$exception, $args) {
             try {
                 $returnValue = yield call([$this, $this->realTestName], ...$args);
+            } catch (\Throwable $exception) {
+                // Also catches exception from potential nested loop.
+                // Exception is rethrown after Loop::run().
             } finally {
                 if (isset($this->timeoutId)) {
                     Loop::cancel($this->timeoutId);
                 }
             }
         });
+
+        if (isset($exception)) {
+            throw $exception;
+        }
 
         $actualRuntime = (int) (\round(\microtime(true) - $start, self::RUNTIME_PRECISION) * 1000);
         if ($this->minimumRuntime > $actualRuntime) {
