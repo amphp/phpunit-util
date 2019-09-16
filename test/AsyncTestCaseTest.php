@@ -66,7 +66,7 @@ class AsyncTestCaseTest extends AsyncTestCase
             throw new \Exception('threw the error');
         });
     }
-    
+
     public function testExpectingAnErrorThrown(): \Generator
     {
         $this->expectException(\Error::class);
