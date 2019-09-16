@@ -70,10 +70,14 @@ abstract class AsyncTestCase extends PHPUnitTestCase
             throw $exception;
         }
 
-        $actualRuntime = (int) (\round(\microtime(true) - $start, self::RUNTIME_PRECISION) * 1000);
-        if ($this->minimumRuntime > $actualRuntime) {
+        if ($this->minimumRuntime > 0) {
+            $actualRuntime = (int) (\round(\microtime(true) - $start, self::RUNTIME_PRECISION) * 1000);
             $msg = 'Expected test to take at least %dms but instead took %dms';
-            $this->fail(\sprintf($msg, $this->minimumRuntime, $actualRuntime));
+            $this->assertGreaterThanOrEqual(
+                $this->minimumRuntime,
+                $actualRuntime,
+                \sprintf($msg, $this->minimumRuntime, $actualRuntime)
+            );
         }
 
         return $returnValue;
@@ -86,6 +90,10 @@ abstract class AsyncTestCase extends PHPUnitTestCase
      */
     final protected function setMinimumRuntime(int $runtime)
     {
+        if ($runtime < 1) {
+            throw new \Error('Minimum runtime must be at least 1ms');
+        }
+
         $this->minimumRuntime = $runtime;
     }
 
