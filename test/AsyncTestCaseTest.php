@@ -100,11 +100,27 @@ class AsyncTestCaseTest extends AsyncTestCase
     public function testSetTimeout(): \Generator
     {
         $this->setTimeout(100);
+        $this->assertNull(yield new Delayed(50));
+    }
+
+    public function testSetTimeoutWithCoroutine(): \Generator
+    {
+        $this->setTimeout(100);
 
         $this->expectException(AssertionFailedError::class);
         $this->expectExceptionMessage('Expected test to complete before 100ms time limit');
 
         yield new Delayed(200);
+    }
+
+    public function testSetTimeoutWithWatcher()
+    {
+        $this->setTimeout(100);
+
+        $this->expectException(AssertionFailedError::class);
+        $this->expectExceptionMessage('Expected test to complete before 100ms time limit');
+
+        Loop::delay(200, function () {});
     }
 
     public function testSetMinimumRunTime(): \Generator
@@ -124,6 +140,14 @@ class AsyncTestCaseTest extends AsyncTestCase
     {
         $this->setMinimumRuntime(100);
         Loop::delay(100, $this->createCallback(1));
+    }
+
+    public function testUnresolvedPromise(): Promise
+    {
+        $this->expectException(AssertionFailedError::class);
+        $this->expectExceptionMessage('Loop stopped without resolving promise or coroutine returned from test method');
+
+        return (new Deferred)->promise();
     }
 
     public function testCreateCallback()

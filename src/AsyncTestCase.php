@@ -49,25 +49,30 @@ abstract class AsyncTestCase extends PHPUnitTestCase
             ));
         }
 
+        $invoked = false;
         $returnValue = null;
 
         $start = \microtime(true);
 
-        Loop::run(function () use (&$returnValue, &$exception, $args) {
-            try {
-                $returnValue = yield call([$this, $this->realTestName], ...$args);
-            } catch (\Throwable $exception) {
-                // Also catches exception from potential nested loop.
-                // Exception is rethrown after Loop::run().
-            } finally {
-                if (isset($this->timeoutId)) {
-                    Loop::cancel($this->timeoutId);
-                }
-            }
+        Loop::run(function () use (&$returnValue, &$exception, &$invoked, $args) {
+            $promise = call([$this, $this->realTestName], ...$args);
+            $promise->onResolve(function ($error, $value) use (&$invoked, &$exception, &$returnValue) {
+                $invoked = true;
+                $exception = $error;
+                $returnValue = $value;
+            });
         });
+
+        if (isset($this->timeoutId)) {
+            Loop::cancel($this->timeoutId);
+        }
 
         if (isset($exception)) {
             throw $exception;
+        }
+
+        if (!$invoked) {
+            $this->fail('Loop stopped without resolving promise or coroutine returned from test method');
         }
 
         if ($this->minimumRuntime > 0) {
