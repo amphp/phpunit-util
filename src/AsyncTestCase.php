@@ -111,7 +111,18 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     {
         $this->timeoutId = Loop::delay($timeout, function () use ($timeout) {
             Loop::stop();
-            $this->fail('Expected test to complete before ' . $timeout . 'ms time limit');
+            Loop::setErrorHandler(null);
+
+            $loop = Loop::get();
+            if ($loop instanceof Loop\TracingDriver) {
+                $additionalInfo = "\r\n\r\n" . $loop->dump();
+            } elseif (\class_exists(Loop\TracingDriver::class)) {
+                $additionalInfo = "\r\n\r\nSet AMP_DEBUG_TRACE_WATCHERS=true as environment variable to trace watchers keeping the loop running.";
+            } else {
+                $additionalInfo = "\r\n\r\nInstall amphp/amp@^2.3 and set AMP_DEBUG_TRACE_WATCHERS=true as environment variable to trace watchers keeping the loop running. ";
+            }
+
+            $this->fail('Expected test to complete before ' . $timeout . 'ms time limit' . $additionalInfo);
         });
 
         Loop::unreference($this->timeoutId);
