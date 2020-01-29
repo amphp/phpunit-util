@@ -163,6 +163,7 @@ class AsyncTestCaseTest extends AsyncTestCase
     public function testSetMinimumRunTimeWithWatchersOnly()
     {
         $this->setMinimumRuntime(100);
+        $this->setTimeout(200);
         Loop::delay(100, $this->createCallback(1));
     }
 
@@ -181,5 +182,22 @@ class AsyncTestCaseTest extends AsyncTestCase
         });
 
         $this->assertSame(2, $mock(1));
+    }
+
+    public function testIssue8()
+    {
+        $this->expectException(AssertionFailedError::class);
+        $this->expectExceptionMessage('Exception thrown: ');
+
+        Loop::repeat(1000, static function () {});
+        throw new \Exception('Test exception');
+    }
+
+    public function testLoopContinuesToRunAfterResolve()
+    {
+        $this->expectException(AssertionFailedError::class);
+        $this->expectExceptionMessage('event loop continued to run');
+
+        Loop::repeat(1000, static function () {});
     }
 }
