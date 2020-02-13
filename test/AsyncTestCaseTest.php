@@ -132,7 +132,14 @@ class AsyncTestCaseTest extends AsyncTestCase
         };
 
         $this->expectException(AssertionFailedError::class);
-        $this->expectExceptionMessageRegExp("/Expected test to take at least 100ms but instead took (\d+)ms/");
+        $pattern = "/Expected test to take at least 100ms but instead took (\d+)ms/";
+        if (\method_exists($this, 'expectExceptionMessageMatches')) {
+            // PHPUnit 8+
+            $this->expectExceptionMessageMatches($pattern);
+        } else {
+            // PHPUnit 6-7
+            $this->expectExceptionMessageRegExp($pattern);
+        }
         yield call($func);
     }
 
