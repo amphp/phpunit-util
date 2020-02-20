@@ -30,6 +30,9 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     /** @var bool */
     private $setUpInvoked = false;
 
+    /** @var int|null */
+    private $timeout;
+
     final protected function runTest()
     {
         parent::setName('runAsyncTest');
@@ -60,6 +63,28 @@ abstract class AsyncTestCase extends PHPUnitTestCase
                 $invoked = true;
                 $exception = $error;
                 $returnValue = $value;
+
+                if ($this->timeout === null) {
+                    Loop::unreference(Loop::defer(function () use ($exception) {
+                        Loop::stop();
+
+                        if ($exception) {
+                            $this->fail(\sprintf(
+                                'An exception was thrown from the test method or promise returned from test method failed,'
+                                . ' but the event loop continued to run; set a timeout with %s::setTimeout() to allow the loop to continue'
+                                . ' to run for a given period of time; Exception thrown: %s',
+                                self::class,
+                                $exception
+                            ));
+                        }
+
+                        $this->fail(\sprintf(
+                            'The event loop continued to run after the test method completed or the promise returned resolved;'
+                            . ' set a timeout with %s::setTimeout() to allow the loop to continue to run for a given period of time',
+                            self::class
+                        ));
+                    }));
+                }
             });
         });
 
@@ -109,6 +134,8 @@ abstract class AsyncTestCase extends PHPUnitTestCase
      */
     final protected function setTimeout(int $timeout)
     {
+        $this->timeout = $timeout;
+
         $this->timeoutId = Loop::delay($timeout, function () use ($timeout) {
             Loop::stop();
             Loop::setErrorHandler(null);
