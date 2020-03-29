@@ -3,6 +3,7 @@
 namespace Amp\PHPUnit;
 
 use Amp\Loop;
+use Amp\Success;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase as PHPUnitTestCase;
 use function Amp\call;
@@ -55,11 +56,13 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         $start = \microtime(true);
 
         Loop::run(function () use (&$returnValue, &$exception, &$invoked, $args) {
+            yield $this->setUpAsync();
             $promise = call([$this, $this->realTestName], ...$args);
             $promise->onResolve(function ($error, $value) use (&$invoked, &$exception, &$returnValue) {
                 $invoked = true;
                 $exception = $error;
                 $returnValue = $value;
+                yield $this->tearDownAsync();
             });
         });
 
@@ -145,5 +148,15 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         }
 
         return $mock;
+    }
+
+    protected function setUpAsync(): Promise
+    {
+        return new Success();
+    }
+
+    protected function tearDownAsync(): Promise
+    {
+        return new Success();
     }
 }
