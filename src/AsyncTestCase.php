@@ -3,6 +3,7 @@
 namespace Amp\PHPUnit;
 
 use Amp\Loop;
+use Amp\Promise;
 use Amp\Success;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase as PHPUnitTestCase;
@@ -57,12 +58,24 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 
         Loop::run(function () use (&$returnValue, &$exception, &$invoked, $args) {
             yield $this->setUpAsync();
-            $promise = call([$this, $this->realTestName], ...$args);
+            $promise = call(function () use ($args): \Generator {
+                $e = null;
+
+                try {
+                    yield call([$this, $this->realTestName], ...$args);
+                } catch (\Throwable $e) {
+                }
+
+                yield $this->tearDownAsync();
+
+                if (null !== $e) {
+                    throw $e;
+                }
+            });
             $promise->onResolve(function ($error, $value) use (&$invoked, &$exception, &$returnValue) {
                 $invoked = true;
                 $exception = $error;
                 $returnValue = $value;
-                yield $this->tearDownAsync();
             });
         });
 
