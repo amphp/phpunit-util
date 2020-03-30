@@ -3,6 +3,8 @@
 namespace Amp\PHPUnit;
 
 use Amp\Loop;
+use Amp\Promise;
+use Amp\Success;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase as PHPUnitTestCase;
 use function Amp\call;
@@ -55,7 +57,36 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         $start = \microtime(true);
 
         Loop::run(function () use (&$returnValue, &$exception, &$invoked, $args) {
-            $promise = call([$this, $this->realTestName], ...$args);
+            $promise = call(function () use ($args) {
+                try {
+                    yield $this->setUpAsync();
+                } catch (\Throwable $exception) {
+                    throw new \Error(\sprintf(
+                        'Promise returned from %s::setUpAsync() failed',
+                        \str_replace("\0", '@', \get_class($this)) // replace NUL-byte in anonymous class name
+                    ), 0, $exception);
+                }
+
+                try {
+                    yield call([$this, $this->realTestName], ...$args);
+                } catch (\Throwable $testException) {
+                    // Exception rethrown in finally block below
+                }
+
+                try {
+                    yield $this->tearDownAsync();
+                } catch (\Throwable $exception) {
+                    throw new \Error(\sprintf(
+                        'Promise returned from %s::tearDownAsync() failed',
+                        \str_replace("\0", '@', \get_class($this)) // replace NUL-byte in anonymous class name
+                    ), 0, $exception);
+                } finally {
+                    if (isset($testException)) {
+                        throw $testException;
+                    }
+                }
+            });
+
             $promise->onResolve(function ($error, $value) use (&$invoked, &$exception, &$returnValue) {
                 $invoked = true;
                 $exception = $error;
@@ -86,6 +117,16 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         }
 
         return $returnValue;
+    }
+
+    protected function setUpAsync(): Promise
+    {
+        return new Success;
+    }
+
+    protected function tearDownAsync(): Promise
+    {
+        return new Success;
     }
 
     /**
