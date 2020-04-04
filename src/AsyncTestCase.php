@@ -5,9 +5,11 @@ namespace Amp\PHPUnit;
 use Amp\Coroutine;
 use Amp\Failure;
 use Amp\Loop;
+use Amp\Promise;
 use Amp\Success;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase as PHPUnitTestCase;
+use React\Promise\PromiseInterface as ReactPromise;
 
 /**
  * A PHPUnit TestCase intended to help facilitate writing async tests by running each test as coroutine with Amp's
@@ -178,7 +180,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
      *
      * @return Promise
      */
-    private function call(callable $callback, ...$args)
+    private function call(callable $callback, ...$args): Promise
     {
         $this->generator = null;
 
