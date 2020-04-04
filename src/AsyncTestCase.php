@@ -2,10 +2,14 @@
 
 namespace Amp\PHPUnit;
 
+use Amp\Coroutine;
+use Amp\Failure;
 use Amp\Loop;
+use Amp\Promise;
+use Amp\Success;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase as PHPUnitTestCase;
-use function Amp\call;
+use React\Promise\PromiseInterface as ReactPromise;
 
 /**
  * A PHPUnit TestCase intended to help facilitate writing async tests by running each test as coroutine with Amp's
@@ -30,11 +34,8 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     /** @var bool */
     private $setUpInvoked = false;
 
-    final protected function runTest()
-    {
-        parent::setName('runAsyncTest');
-        return parent::runTest();
-    }
+    /** @var \Generator|null */
+    private $generator;
 
     /** @internal */
     final public function runAsyncTest(...$args)
@@ -55,7 +56,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         $start = \microtime(true);
 
         Loop::run(function () use (&$returnValue, &$exception, &$invoked, $args) {
-            $promise = call([$this, $this->realTestName], ...$args);
+            $promise = $this->call([$this, $this->realTestName], ...$args);
             $promise->onResolve(function ($error, $value) use (&$invoked, &$exception, &$returnValue) {
                 $invoked = true;
                 $exception = $error;
@@ -66,6 +67,8 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         if (isset($this->timeoutId)) {
             Loop::cancel($this->timeoutId);
         }
+
+        $this->generator = null;
 
         if (isset($exception)) {
             throw $exception;
@@ -86,6 +89,12 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         }
 
         return $returnValue;
+    }
+
+    final protected function runTest()
+    {
+        parent::setName('runAsyncTest');
+        return parent::runTest();
     }
 
     /**
@@ -113,13 +122,29 @@ abstract class AsyncTestCase extends PHPUnitTestCase
             Loop::stop();
             Loop::setErrorHandler(null);
 
+            $additionalInfo = '';
+
+            if ($this->generator && $this->generator->valid()) {
+                $reflGen = new \ReflectionGenerator($this->generator);
+                $exeGen = $reflGen->getExecutingGenerator();
+                if ($isSubgenerator = ($exeGen !== $this->generator)) {
+                    $reflGen = new \ReflectionGenerator($exeGen);
+                }
+
+                $additionalInfo .= \sprintf(
+                    "\r\n\r\nTimeout reached on line %s in %s",
+                    $reflGen->getExecutingLine(),
+                    $reflGen->getExecutingFile()
+                );
+            }
+
             $loop = Loop::get();
             if ($loop instanceof Loop\TracingDriver) {
-                $additionalInfo = "\r\n\r\n" . $loop->dump();
+                $additionalInfo .= "\r\n\r\n" . $loop->dump();
             } elseif (\class_exists(Loop\TracingDriver::class)) {
-                $additionalInfo = "\r\n\r\nSet AMP_DEBUG_TRACE_WATCHERS=true as environment variable to trace watchers keeping the loop running.";
+                $additionalInfo .= "\r\n\r\nSet AMP_DEBUG_TRACE_WATCHERS=true as environment variable to trace watchers keeping the loop running.";
             } else {
-                $additionalInfo = "\r\n\r\nInstall amphp/amp@^2.3 and set AMP_DEBUG_TRACE_WATCHERS=true as environment variable to trace watchers keeping the loop running. ";
+                $additionalInfo .= "\r\n\r\nInstall amphp/amp@^2.3 and set AMP_DEBUG_TRACE_WATCHERS=true as environment variable to trace watchers keeping the loop running. ";
             }
 
             $this->fail('Expected test to complete before ' . $timeout . 'ms time limit' . $additionalInfo);
@@ -130,7 +155,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 
     /**
      * @param int           $invocationCount Number of times the callback must be invoked or the test will fail.
-     * @param callable|null $returnCallback  Callable providing a return value for the callback.
+     * @param callable|null $returnCallback Callable providing a return value for the callback.
      *
      * @return callable|MockObject Mock object having only an __invoke method.
      */
@@ -145,5 +170,40 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         }
 
         return $mock;
+    }
+
+    /**
+     * Specialized Amp\call that stores the generator if present for debugging purposes.
+     *
+     * @param callable $callback
+     * @param mixed    ...$args
+     *
+     * @return Promise
+     */
+    private function call(callable $callback, ...$args): Promise
+    {
+        $this->generator = null;
+
+        try {
+            $result = $callback(...$args);
+        } catch (\Throwable $exception) {
+            return new Failure($exception);
+        }
+
+        if ($result instanceof \Generator) {
+            $this->generator = $result;
+
+            return new Coroutine($result);
+        }
+
+        if ($result instanceof Promise) {
+            return $result;
+        }
+
+        if ($result instanceof ReactPromise) {
+            return Promise\adapt($result);
+        }
+
+        return new Success($result);
     }
 }
