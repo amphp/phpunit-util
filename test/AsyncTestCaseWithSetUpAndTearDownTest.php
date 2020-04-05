@@ -41,4 +41,10 @@ class AsyncTestCaseWithSetUpAndTearDownTest extends AsyncTestCase
     {
         // Expected exception set in setUpAsync().
     }
+
+    public function testThatExceptionIsNotThrownCorrectly(): \Generator
+    {
+        $this->expectException(\Exception::class);
+    }
+
 }
