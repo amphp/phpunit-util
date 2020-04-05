@@ -9,27 +9,36 @@ use Amp\Promise;
 
 class AsyncTestCaseWithSetUpAndTearDownTest extends AsyncTestCase
 {
-    private static $firstRun = true;
-
     protected function setUpAsync(): Promise
     {
-        if (self::$firstRun) {
-            self::$firstRun = false;
-            return parent::setUpAsync();
+        if ($this->getName() === 'testFailingSetUpAsync') {
+            $this->expectException(\Error::class);
+            $this->expectExceptionMessage('setUpAsync() failed');
+
+            return new Failure(new TestException);
         }
 
-        $this->expectException(\Error::class);
-        $this->expectExceptionMessage('setUpAsync() failed');
-
-        return new Failure(new TestException);
+        return parent::setUpAsync();
     }
 
     protected function tearDownAsync(): Promise
     {
-        $this->expectException(\Error::class);
-        $this->expectExceptionMessage('tearDownAsync() failed');
+        if ($this->getName() === 'testFailingTearDownAsync') {
+            $this->expectException(\Error::class);
+            $this->expectExceptionMessage('tearDownAsync() failed');
 
-        return new Failure(new TestException);
+            return new Failure(new TestException);
+        }
+
+        return parent::tearDownAsync();
+    }
+
+    public function testExpectedException(): void
+    {
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Test exception');
+
+        throw new \Exception('Test exception');
     }
 
     public function testFailingTearDownAsync()
