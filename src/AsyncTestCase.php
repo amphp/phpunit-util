@@ -10,7 +10,6 @@ use Amp\Success;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase as PHPUnitTestCase;
 use React\Promise\PromiseInterface as ReactPromise;
-use function Amp\call;
 
 /**
  * A PHPUnit TestCase intended to help facilitate writing async tests by running each test as coroutine with Amp's
@@ -57,36 +56,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         $start = \microtime(true);
 
         Loop::run(function () use (&$returnValue, &$exception, &$invoked, $args) {
-            $promise = call(function () use ($args) {
-                try {
-                    yield $this->setUpAsync();
-                } catch (\Throwable $exception) {
-                    throw new \Error(\sprintf(
-                        'Promise returned from %s::setUpAsync() failed',
-                        \str_replace("\0", '@', \get_class($this)) // replace NUL-byte in anonymous class name
-                    ), 0, $exception);
-                }
-
-                try {
-                    yield $this->call([$this, $this->realTestName], ...$args);
-                } catch (\Throwable $testException) {
-                    // Exception rethrown in finally block below
-                }
-
-                try {
-                    yield $this->tearDownAsync();
-                } catch (\Throwable $exception) {
-                    throw new \Error(\sprintf(
-                        'Promise returned from %s::tearDownAsync() failed',
-                        \str_replace("\0", '@', \get_class($this)) // replace NUL-byte in anonymous class name
-                    ), 0, $exception);
-                } finally {
-                    if (isset($testException)) {
-                        throw $testException;
-                    }
-                }
-            });
-
+            $promise = new Coroutine($this->runAsyncTestCycle($args));
             $promise->onResolve(function ($error, $value) use (&$invoked, &$exception, &$returnValue) {
                 $invoked = true;
                 $exception = $error;
@@ -116,6 +86,39 @@ abstract class AsyncTestCase extends PHPUnitTestCase
                 $actualRuntime,
                 \sprintf($msg, $this->minimumRuntime, $actualRuntime)
             );
+        }
+
+        return $returnValue;
+    }
+
+    private function runAsyncTestCycle(array $args): \Generator
+    {
+        try {
+            yield $this->setUpAsync();
+        } catch (\Throwable $exception) {
+            throw new \Error(\sprintf(
+                'Promise returned from %s::setUpAsync() failed',
+                \str_replace("\0", '@', \get_class($this)) // replace NUL-byte in anonymous class name
+            ), 0, $exception);
+        }
+
+        try {
+            $returnValue = yield $this->call([$this, $this->realTestName], ...$args);
+        } catch (\Throwable $testException) {
+            // Exception rethrown in finally block below
+        }
+
+        try {
+            yield $this->tearDownAsync();
+        } catch (\Throwable $exception) {
+            throw new \Error(\sprintf(
+                'Promise returned from %s::tearDownAsync() failed',
+                \str_replace("\0", '@', \get_class($this)) // replace NUL-byte in anonymous class name
+            ), 0, $exception);
+        } finally {
+            if (isset($testException)) {
+                throw $testException;
+            }
         }
 
         return $returnValue;
