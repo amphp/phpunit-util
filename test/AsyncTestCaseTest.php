@@ -7,6 +7,7 @@ use Amp\Delayed;
 use Amp\Loop;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
+use Amp\Success;
 use PHPUnit\Framework\AssertionFailedError;
 use function Amp\call;
 
@@ -164,5 +165,20 @@ class AsyncTestCaseTest extends AsyncTestCase
         });
 
         $this->assertSame(2, $mock(1));
+    }
+
+    /** @doesNotPerformAssertions */
+    public function testThatReturnValueCanBeUsedForDependsOnTestCasesPart1(): \Generator
+    {
+        yield new Success();
+
+        return 'test-string';
+    }
+
+    public function testThatReturnValueCanBeUsedForDependsOnTestCasesPart2(string $string): \Generator
+    {
+        $this->assertSame('test-string', $string);
+
+        yield new Success();
     }
 }
