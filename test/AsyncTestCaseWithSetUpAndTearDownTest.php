@@ -9,7 +9,7 @@ use Amp\Promise;
 
 class AsyncTestCaseWithSetUpAndTearDownTest extends AsyncTestCase
 {
-    protected function setUpAsync(): Promise
+    protected function setUpAsync()
     {
         if ($this->getName() === 'testFailingSetUpAsync') {
             $this->expectException(\Error::class);
@@ -21,7 +21,7 @@ class AsyncTestCaseWithSetUpAndTearDownTest extends AsyncTestCase
         return parent::setUpAsync();
     }
 
-    protected function tearDownAsync(): Promise
+    protected function tearDownAsync()
     {
         if ($this->getName() === 'testFailingTearDownAsync') {
             $this->expectException(\Error::class);

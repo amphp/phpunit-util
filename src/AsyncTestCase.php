@@ -10,6 +10,7 @@ use Amp\Success;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase as PHPUnitTestCase;
 use React\Promise\PromiseInterface as ReactPromise;
+use function Amp\call;
 
 /**
  * A PHPUnit TestCase intended to help facilitate writing async tests by running each test as coroutine with Amp's
@@ -94,7 +95,9 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     private function runAsyncTestCycle(array $args): \Generator
     {
         try {
-            yield $this->setUpAsync();
+            yield call(function () {
+                return $this->setUpAsync();
+            });
         } catch (\Throwable $exception) {
             throw new \Error(\sprintf(
                 'Promise returned from %s::setUpAsync() failed',
@@ -109,7 +112,9 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         }
 
         try {
-            yield $this->tearDownAsync();
+            yield call(function () {
+                return $this->tearDownAsync();
+            });
         } catch (\Throwable $exception) {
             throw new \Error(\sprintf(
                 'Promise returned from %s::tearDownAsync() failed',
@@ -130,12 +135,12 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         return parent::runTest();
     }
 
-    protected function setUpAsync(): Promise
+    protected function setUpAsync()
     {
         return new Success;
     }
 
-    protected function tearDownAsync(): Promise
+    protected function tearDownAsync()
     {
         return new Success;
     }
