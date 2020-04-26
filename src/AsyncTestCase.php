@@ -94,10 +94,10 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     private function runAsyncTestCycle(array $args): \Generator
     {
         try {
-            yield $this->setUpAsync();
+            yield $this->call(\Closure::fromCallable([$this, 'setUpAsync']));
         } catch (\Throwable $exception) {
             throw new \Error(\sprintf(
-                'Promise returned from %s::setUpAsync() failed',
+                '%s::setUpAsync() failed',
                 \str_replace("\0", '@', \get_class($this)) // replace NUL-byte in anonymous class name
             ), 0, $exception);
         }
@@ -109,10 +109,10 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         }
 
         try {
-            yield $this->tearDownAsync();
+            yield $this->call(\Closure::fromCallable([$this, 'tearDownAsync']));
         } catch (\Throwable $exception) {
             throw new \Error(\sprintf(
-                'Promise returned from %s::tearDownAsync() failed',
+                '%s::tearDownAsync() failed',
                 \str_replace("\0", '@', \get_class($this)) // replace NUL-byte in anonymous class name
             ), 0, $exception);
         } finally {
@@ -130,14 +130,22 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         return parent::runTest();
     }
 
-    protected function setUpAsync(): Promise
+    /**
+     * Called before each test. Similar to {@see TestCase::setUp()}, except the method may return a promise or
+     * coroutine (@see \Amp\call()} that will be awaited before executing the test.
+     */
+    protected function setUpAsync()
     {
-        return new Success;
+        // Empty method to be overloaded by inheriting class if desired.
     }
 
-    protected function tearDownAsync(): Promise
+    /**
+     * Called after each test. Similar to {@see TestCase::tearDown()}, except the method may return a promise or
+     * coroutine (@see \Amp\call()} that will be awaited before executing the next test.
+     */
+    protected function tearDownAsync()
     {
-        return new Success;
+        // Empty method to be overloaded by inheriting class if desired.
     }
 
     /**

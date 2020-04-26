@@ -6,6 +6,7 @@ use Amp\Failure;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\PHPUnit\TestException;
 use Amp\Promise;
+use Amp\Success;
 
 class AsyncTestCaseWithSetUpAndTearDownTest extends AsyncTestCase
 {
@@ -18,7 +19,7 @@ class AsyncTestCaseWithSetUpAndTearDownTest extends AsyncTestCase
             return new Failure(new TestException);
         }
 
-        return parent::setUpAsync();
+        return new Success;
     }
 
     protected function tearDownAsync(): Promise
@@ -30,7 +31,7 @@ class AsyncTestCaseWithSetUpAndTearDownTest extends AsyncTestCase
             return new Failure(new TestException);
         }
 
-        return parent::tearDownAsync();
+        return new Success;
     }
 
     public function testExpectedException(): void
