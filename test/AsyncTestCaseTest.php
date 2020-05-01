@@ -42,6 +42,13 @@ class AsyncTestCaseTest extends AsyncTestCase
         $this->assertTrue($testData->val, 'Expected our test to run on loop to completion');
     }
 
+    public function testReturningPromise(): Promise
+    {
+        $returnValue = new Delayed(100, 'value');
+        $this->assertInstanceOf(Promise::class, $returnValue); // An assertion is required for the test to pass
+        return $returnValue; // Return value used by testReturnValueFromDependentTest
+    }
+
     public function testExpectingAnExceptionThrown(): \Generator
     {
         $throwException = function () {
@@ -95,6 +102,16 @@ class AsyncTestCaseTest extends AsyncTestCase
         $this->assertSame('foo', $foo);
         $this->assertSame(42, $bar);
         $this->assertTrue($baz);
+    }
+
+    /**
+     * @param string|null $value
+     *
+     * @depends testReturningPromise
+     */
+    public function testReturnValueFromDependentTest(string $value = null)
+    {
+        $this->assertSame('value', $value);
     }
 
     public function testSetTimeout(): \Generator

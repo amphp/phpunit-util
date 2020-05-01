@@ -56,7 +56,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         $start = \microtime(true);
 
         Loop::run(function () use (&$returnValue, &$exception, &$invoked, $args) {
-            $promise = $this->call([$this, $this->realTestName], ...$args);
+            $promise = new Coroutine($this->runAsyncTestCycle($args));
             $promise->onResolve(function ($error, $value) use (&$invoked, &$exception, &$returnValue) {
                 $invoked = true;
                 $exception = $error;
@@ -91,10 +91,61 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         return $returnValue;
     }
 
+    private function runAsyncTestCycle(array $args): \Generator
+    {
+        try {
+            yield $this->call(\Closure::fromCallable([$this, 'setUpAsync']));
+        } catch (\Throwable $exception) {
+            throw new \Error(\sprintf(
+                '%s::setUpAsync() failed',
+                \str_replace("\0", '@', \get_class($this)) // replace NUL-byte in anonymous class name
+            ), 0, $exception);
+        }
+
+        try {
+            $returnValue = yield $this->call([$this, $this->realTestName], ...$args);
+        } catch (\Throwable $testException) {
+            // Exception rethrown in finally block below
+        }
+
+        try {
+            yield $this->call(\Closure::fromCallable([$this, 'tearDownAsync']));
+        } catch (\Throwable $exception) {
+            throw new \Error(\sprintf(
+                '%s::tearDownAsync() failed',
+                \str_replace("\0", '@', \get_class($this)) // replace NUL-byte in anonymous class name
+            ), 0, $exception);
+        } finally {
+            if (isset($testException)) {
+                throw $testException;
+            }
+        }
+
+        return $returnValue;
+    }
+
     final protected function runTest()
     {
         parent::setName('runAsyncTest');
         return parent::runTest();
+    }
+
+    /**
+     * Called before each test. Similar to {@see TestCase::setUp()}, except the method may return a promise or
+     * coroutine (@see \Amp\call()} that will be awaited before executing the test.
+     */
+    protected function setUpAsync()
+    {
+        // Empty method to be overloaded by inheriting class if desired.
+    }
+
+    /**
+     * Called after each test. Similar to {@see TestCase::tearDown()}, except the method may return a promise or
+     * coroutine (@see \Amp\call()} that will be awaited before executing the next test.
+     */
+    protected function tearDownAsync()
+    {
+        // Empty method to be overloaded by inheriting class if desired.
     }
 
     /**
