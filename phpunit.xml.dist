@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="http://schema.phpunit.de/6.0/phpunit.xsd"
-        backupGlobals="false"
-        backupStaticAttributes="false"
-        bootstrap="vendor/autoload.php"
-        colors="true"
-        convertErrorsToExceptions="true"
-        convertNoticesToExceptions="true"
-        convertWarningsToExceptions="true"
-        processIsolation="false"
-        stopOnFailure="false"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd"
+    backupGlobals="false"
+    backupStaticAttributes="false"
+    bootstrap="vendor/autoload.php"
+    colors="true"
+    convertErrorsToExceptions="true"
+    convertNoticesToExceptions="true"
+    convertWarningsToExceptions="true"
+    processIsolation="false"
+    stopOnFailure="false"
 >
     <testsuites>
         <testsuite name="Main">
@@ -20,9 +20,9 @@
             <directory suffix=".phpt">test</directory>
         </testsuite>
     </testsuites>
-    <filter>
-        <whitelist>
+    <coverage>
+        <include>
             <directory suffix=".php">src</directory>
-        </whitelist>
-    </filter>
+        </include>
+    </coverage>
 </phpunit>

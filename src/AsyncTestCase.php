@@ -2,132 +2,44 @@
 
 namespace Amp\PHPUnit;
 
-use Amp\Coroutine;
-use Amp\Failure;
+use Amp\Deferred;
 use Amp\Loop;
-use Amp\Promise;
-use Amp\Success;
+use PHPUnit\Framework\AssertionFailedError;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase as PHPUnitTestCase;
-use React\Promise\PromiseInterface as ReactPromise;
+use function Amp\await;
+use function Amp\async;
+use function Amp\call;
+use function Amp\sleep;
 
-/**
- * A PHPUnit TestCase intended to help facilitate writing async tests by running each test as coroutine with Amp's
- * event loop ensuring that the test runs until completion based on your test returning either a Promise or Generator.
- */
 abstract class AsyncTestCase extends PHPUnitTestCase
 {
-    use Internal\AsyncTestSetNameTrait;
-    use Internal\AsyncTestSetUpTrait;
-
     const RUNTIME_PRECISION = 2;
 
-    /** @var string|null Timeout watcher ID. */
-    private $timeoutId;
+    private Deferred $timeoutDeferred;
+
+    private string $timeoutId;
 
     /** @var int Minimum runtime in milliseconds. */
-    private $minimumRuntime = 0;
+    private int $minimumRuntime = 0;
 
     /** @var string Temporary storage for actual test name. */
-    private $realTestName;
+    private string $realTestName;
 
-    /** @var bool */
-    private $setUpInvoked = false;
+    private bool $setUpInvoked = false;
 
-    /** @var \Generator|null */
-    private $generator;
-
-    /** @internal */
-    final public function runAsyncTest(...$args)
+    public function __construct(?string $name = null, array $data = [], $dataName = '')
     {
-        parent::setName($this->realTestName);
+        parent::__construct($name, $data, $dataName);
 
-        if (!$this->setUpInvoked) {
-            $this->fail(\sprintf(
-                '%s::setUp() overrides %s::setUp() without calling the parent method',
-                \str_replace("\0", '@', \get_class($this)), // replace NUL-byte in anonymous class name
-                self::class
-            ));
-        }
-
-        $invoked = false;
-        $returnValue = null;
-
-        $start = \microtime(true);
-
-        Loop::run(function () use (&$returnValue, &$exception, &$invoked, $args) {
-            $promise = new Coroutine($this->runAsyncTestCycle($args));
-            $promise->onResolve(function ($error, $value) use (&$invoked, &$exception, &$returnValue) {
-                $invoked = true;
-                $exception = $error;
-                $returnValue = $value;
-            });
-        });
-
-        if (isset($this->timeoutId)) {
-            Loop::cancel($this->timeoutId);
-        }
-
-        $this->generator = null;
-
-        if (isset($exception)) {
-            throw $exception;
-        }
-
-        if (!$invoked) {
-            $this->fail('Loop stopped without resolving promise or coroutine returned from test method');
-        }
-
-        if ($this->minimumRuntime > 0) {
-            $actualRuntime = (int) (\round(\microtime(true) - $start, self::RUNTIME_PRECISION) * 1000);
-            $msg = 'Expected test to take at least %dms but instead took %dms';
-            $this->assertGreaterThanOrEqual(
-                $this->minimumRuntime,
-                $actualRuntime,
-                \sprintf($msg, $this->minimumRuntime, $actualRuntime)
-            );
-        }
-
-        return $returnValue;
+        $this->timeoutDeferred = new Deferred;
     }
 
-    private function runAsyncTestCycle(array $args): \Generator
+    protected function setUp(): void
     {
-        try {
-            yield $this->call(\Closure::fromCallable([$this, 'setUpAsync']));
-        } catch (\Throwable $exception) {
-            throw new \Error(\sprintf(
-                '%s::setUpAsync() failed',
-                \str_replace("\0", '@', \get_class($this)) // replace NUL-byte in anonymous class name
-            ), 0, $exception);
-        }
-
-        try {
-            $returnValue = yield $this->call([$this, $this->realTestName], ...$args);
-        } catch (\Throwable $testException) {
-            // Exception rethrown in finally block below
-        }
-
-        try {
-            yield $this->call(\Closure::fromCallable([$this, 'tearDownAsync']));
-        } catch (\Throwable $exception) {
-            throw new \Error(\sprintf(
-                '%s::tearDownAsync() failed',
-                \str_replace("\0", '@', \get_class($this)) // replace NUL-byte in anonymous class name
-            ), 0, $exception);
-        } finally {
-            if (isset($testException)) {
-                throw $testException;
-            }
-        }
-
-        return $returnValue;
-    }
-
-    final protected function runTest()
-    {
-        parent::setName('runAsyncTest');
-        return parent::runTest();
+        $this->setUpInvoked = true;
+        Loop::set((new Loop\DriverFactory)->create());
+        \gc_collect_cycles(); // extensions using an event loop may otherwise leak the file descriptors to the loop
     }
 
     /**
@@ -149,11 +61,95 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     }
 
     /**
+     * @codeCoverageIgnore Invoked before code coverage data is being collected.
+     */
+    final public function setName(string $name): void
+    {
+        parent::setName($name);
+        $this->realTestName = $name;
+    }
+
+    /** @internal */
+    final protected function runAsyncTest(mixed ...$args): mixed
+    {
+        if (!$this->setUpInvoked) {
+            $this->fail(\sprintf(
+                '%s::setUp() overrides %s::setUp() without calling the parent method',
+                \str_replace("\0", '@', \get_class($this)), // replace NUL-byte in anonymous class name
+                self::class
+            ));
+        }
+
+        parent::setName($this->realTestName);
+
+        try {
+            await(call(\Closure::fromCallable([$this, 'setUpAsync'])));
+        } catch (\Throwable $exception) {
+            throw new \Error(\sprintf(
+                '%s::setUpAsync() failed',
+                \str_replace("\0", '@', \get_class($this)) // replace NUL-byte in anonymous class name
+            ), 0, $exception);
+        }
+
+        $start = \microtime(true);
+
+        try {
+            [$returnValue] = await([
+                async(function () use ($args): mixed {
+                    try {
+                        return await(call([$this, $this->realTestName], ...$args));
+                    } finally {
+                        if (!$this->timeoutDeferred->isResolved()) {
+                            $this->timeoutDeferred->resolve();
+                        }
+                    }
+                }),
+                $this->timeoutDeferred->promise()
+            ]);
+        } finally {
+            if (isset($this->timeoutId)) {
+                Loop::cancel($this->timeoutId);
+            }
+
+            try {
+                await(call(\Closure::fromCallable([$this, 'tearDownAsync'])));
+            } catch (\Throwable $exception) {
+                throw new \Error(\sprintf(
+                    '%s::tearDownAsync() failed',
+                    \str_replace("\0", '@', \get_class($this)) // replace NUL-byte in anonymous class name
+                ), 0, $exception);
+            }
+
+            $this->checkLoop();
+        }
+
+        $end = \microtime(true);
+
+        if ($this->minimumRuntime > 0) {
+            $actualRuntime = (int) (\round($end - $start, self::RUNTIME_PRECISION) * 1000);
+            $msg = 'Expected test to take at least %dms but instead took %dms';
+            $this->assertGreaterThanOrEqual(
+                $this->minimumRuntime,
+                $actualRuntime,
+                \sprintf($msg, $this->minimumRuntime, $actualRuntime)
+            );
+        }
+
+        return $returnValue;
+    }
+
+    final protected function runTest(): mixed
+    {
+        parent::setName('runAsyncTest');
+        return parent::runTest();
+    }
+
+    /**
      * Fails the test if the loop does not run for at least the given amount of time.
      *
      * @param int $runtime Required run time in milliseconds.
      */
-    final protected function setMinimumRuntime(int $runtime)
+    final protected function setMinimumRuntime(int $runtime): void
     {
         if ($runtime < 1) {
             throw new \Error('Minimum runtime must be at least 1ms');
@@ -167,27 +163,12 @@ abstract class AsyncTestCase extends PHPUnitTestCase
      *
      * @param int $timeout Timeout in milliseconds.
      */
-    final protected function setTimeout(int $timeout)
+    final protected function setTimeout(int $timeout): void
     {
-        $this->timeoutId = Loop::delay($timeout, function () use ($timeout) {
-            Loop::stop();
+        $this->timeoutId = Loop::delay($timeout, function () use ($timeout): void {
             Loop::setErrorHandler(null);
 
             $additionalInfo = '';
-
-            if ($this->generator && $this->generator->valid()) {
-                $reflGen = new \ReflectionGenerator($this->generator);
-                $exeGen = $reflGen->getExecutingGenerator();
-                if ($isSubgenerator = ($exeGen !== $this->generator)) {
-                    $reflGen = new \ReflectionGenerator($exeGen);
-                }
-
-                $additionalInfo .= \sprintf(
-                    "\r\n\r\nTimeout reached on line %s in %s",
-                    $reflGen->getExecutingLine(),
-                    $reflGen->getExecutingFile()
-                );
-            }
 
             $loop = Loop::get();
             if ($loop instanceof Loop\TracingDriver) {
@@ -198,9 +179,12 @@ abstract class AsyncTestCase extends PHPUnitTestCase
                 $additionalInfo .= "\r\n\r\nInstall amphp/amp@^2.3 and set AMP_DEBUG_TRACE_WATCHERS=true as environment variable to trace watchers keeping the loop running. ";
             }
 
-            $this->fail('Expected test to complete before ' . $timeout . 'ms time limit' . $additionalInfo);
+            try {
+                $this->fail('Expected test to complete before ' . $timeout . 'ms time limit' . $additionalInfo);
+            } catch (AssertionFailedError $e) {
+                $this->timeoutDeferred->fail($e);
+            }
         });
-
         Loop::unreference($this->timeoutId);
     }
 
@@ -223,38 +207,31 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         return $mock;
     }
 
-    /**
-     * Specialized Amp\call that stores the generator if present for debugging purposes.
-     *
-     * @param callable $callback
-     * @param mixed    ...$args
-     *
-     * @return Promise
-     */
-    private function call(callable $callback, ...$args): Promise
+    private function checkLoop(): void
     {
-        $this->generator = null;
+        $info = Loop::getInfo();
+        $errors = [];
 
-        try {
-            $result = $callback(...$args);
-        } catch (\Throwable $exception) {
-            return new Failure($exception);
+        while (true) {
+            try {
+                sleep(0);
+                break;
+            } catch (\Throwable $e) {
+                $errors[] = (string) $e;
+            }
         }
 
-        if ($result instanceof \Generator) {
-            $this->generator = $result;
-
-            return new Coroutine($result);
+        if ($errors && !$this->hasFailed()) {
+            $this->markTestIncomplete(\implode("\n", $errors));
         }
 
-        if ($result instanceof Promise) {
-            return $result;
+        if (!isset($this->timeoutId)
+            && !$this->hasFailed()
+            && $info['enabled_watchers']['referenced'] + $info['enabled_watchers']['unreferenced'] > 0
+        ) {
+            $this->fail(
+                "Found enabled watchers at end of test '{$this->getName()}': " . \json_encode($info, \JSON_PRETTY_PRINT),
+            );
         }
-
-        if ($result instanceof ReactPromise) {
-            return Promise\adapt($result);
-        }
-
-        return new Success($result);
     }
 }

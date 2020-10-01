@@ -18,11 +18,12 @@
         "irc": "irc://irc.freenode.org/amphp"
     },
     "require": {
-        "php": ">=7.1",
-        "phpunit/phpunit": "^6 | ^7 | ^8 | ^9"
+        "php": ">=8",
+        "ext-json": "*",
+        "phpunit/phpunit": "^9"
     },
     "require-dev": {
-        "amphp/amp": "^2",
+        "amphp/amp": "^3-dev",
         "amphp/php-cs-fixer-config": "dev-master"
     },
     "autoload": {

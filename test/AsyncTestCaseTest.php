@@ -8,14 +8,16 @@ use Amp\Loop;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
 use PHPUnit\Framework\AssertionFailedError;
+use function Amp\await;
 use function Amp\call;
+use function Amp\sleep;
 
 class AsyncTestCaseTest extends AsyncTestCase
 {
     public function testThatMethodRunsInLoopContext(): Promise
     {
-        $returnDeferred = new Deferred(); // make sure our test runs to completion
-        $testDeferred = new Deferred(); // used by our defer callback to ensure we're running on the Loop
+        $returnDeferred = new Deferred; // make sure our test runs to completion
+        $testDeferred = new Deferred; // used by our defer callback to ensure we're running on the Loop
         $testDeferred->promise()->onResolve(function ($err = null, $data = null) use ($returnDeferred) {
             $this->assertEquals('foobar', $data, 'Expected the data to be what was resolved in Loop::defer');
             $returnDeferred->resolve();
@@ -29,8 +31,8 @@ class AsyncTestCaseTest extends AsyncTestCase
 
     public function testThatWeHandleNotPromiseReturned(): \Generator
     {
-        $testDeferred = new Deferred();
-        $testData = new \stdClass();
+        $testDeferred = new Deferred;
+        $testData = new \stdClass;
         $testData->val = null;
         Loop::defer(function () use ($testData, $testDeferred) {
             $testData->val = true;
@@ -64,14 +66,18 @@ class AsyncTestCaseTest extends AsyncTestCase
         yield $throwException();
     }
 
-    public function testNestedLoop()
+    public function testNestedLoop(): void
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('threw the error');
 
-        Loop::run(function () {
+        $loop = Loop::get();
+
+        $loop->defer(function () {
             throw new \Exception('threw the error');
         });
+
+        $loop->createControl()->run();
     }
 
     public function testExpectingAnErrorThrown(): \Generator
@@ -130,51 +136,28 @@ class AsyncTestCaseTest extends AsyncTestCase
         yield new Delayed(200);
     }
 
-    public function testSetTimeoutWithWatcher()
+    public function testSetTimeoutWithAwait(): void
     {
         $this->setTimeout(100);
 
         $this->expectException(AssertionFailedError::class);
         $this->expectExceptionMessage('Expected test to complete before 100ms time limit');
 
-        Loop::delay(200, function () {});
+        await(new Delayed(200));
     }
 
-    public function testSetMinimumRunTime(): \Generator
+    public function testSetMinimumRunTime(): void
     {
         $this->setMinimumRuntime(100);
-        $func = function () {
-            yield new Delayed(75);
-            return 'finished';
-        };
 
         $this->expectException(AssertionFailedError::class);
         $pattern = "/Expected test to take at least 100ms but instead took (\d+)ms/";
-        if (\method_exists($this, 'expectExceptionMessageMatches')) {
-            // PHPUnit 8+
-            $this->expectExceptionMessageMatches($pattern);
-        } else {
-            // PHPUnit 6-7
-            $this->expectExceptionMessageRegExp($pattern);
-        }
-        yield call($func);
+        $this->expectExceptionMessageMatches($pattern);
+
+        sleep(75);
     }
 
-    public function testSetMinimumRunTimeWithWatchersOnly()
-    {
-        $this->setMinimumRuntime(100);
-        Loop::delay(100, $this->createCallback(1));
-    }
-
-    public function testUnresolvedPromise(): Promise
-    {
-        $this->expectException(AssertionFailedError::class);
-        $this->expectExceptionMessage('Loop stopped without resolving promise or coroutine returned from test method');
-
-        return (new Deferred)->promise();
-    }
-
-    public function testCreateCallback()
+    public function testCreateCallback(): void
     {
         $mock = $this->createCallback(1, function (int $value): int {
             return $value + 1;
