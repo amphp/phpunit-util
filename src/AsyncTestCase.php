@@ -28,6 +28,8 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 
     private bool $setUpInvoked = false;
 
+    private bool $ignoreWatchers = false;
+
     public function __construct(?string $name = null, array $data = [], $dataName = '')
     {
         parent::__construct($name, $data, $dataName);
@@ -86,8 +88,10 @@ abstract class AsyncTestCase extends PHPUnitTestCase
             await(call(\Closure::fromCallable([$this, 'setUpAsync'])));
         } catch (\Throwable $exception) {
             throw new \Error(\sprintf(
-                '%s::setUpAsync() failed',
-                \str_replace("\0", '@', \get_class($this)) // replace NUL-byte in anonymous class name
+                '%s::setUpAsync() failed: Uncaught %s: %s',
+                \str_replace("\0", '@', \get_class($this)), // replace NUL-byte in anonymous class name
+                \str_replace("\0", '@', \get_class($exception)),
+                $exception->getMessage()
             ), 0, $exception);
         }
 
@@ -115,8 +119,10 @@ abstract class AsyncTestCase extends PHPUnitTestCase
                 await(call(\Closure::fromCallable([$this, 'tearDownAsync'])));
             } catch (\Throwable $exception) {
                 throw new \Error(\sprintf(
-                    '%s::tearDownAsync() failed',
-                    \str_replace("\0", '@', \get_class($this)) // replace NUL-byte in anonymous class name
+                    '%s::tearDownAsync() failed: Uncaught %s: %s',
+                    \str_replace("\0", '@', \get_class($this)), // replace NUL-byte in anonymous class name
+                    \str_replace("\0", '@', \get_class($exception)),
+                    $exception->getMessage()
                 ), 0, $exception);
             }
 
@@ -189,6 +195,14 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     }
 
     /**
+     * Test will not fail if the event loop contains active watchers when the test ends.
+     */
+    final protected function ignoreLoopWatchers(): void
+    {
+        $this->ignoreWatchers = true;
+    }
+
+    /**
      * @param int           $invocationCount Number of times the callback must be invoked or the test will fail.
      * @param callable|null $returnCallback Callable providing a return value for the callback.
      *
@@ -222,10 +236,11 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         }
 
         if ($errors && !$this->hasFailed()) {
-            $this->markTestIncomplete(\implode("\n", $errors));
+            $this->fail(\implode("\n", $errors));
         }
 
         if (!isset($this->timeoutId)
+            && !$this->ignoreWatchers
             && !$this->hasFailed()
             && $info['enabled_watchers']['referenced'] + $info['enabled_watchers']['unreferenced'] > 0
         ) {
