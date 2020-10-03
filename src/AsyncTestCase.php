@@ -40,7 +40,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     protected function setUp(): void
     {
         $this->setUpInvoked = true;
-        Loop::set((new Loop\DriverFactory)->create());
+        Loop::get()->clear(); // remove all watchers from the event loop
         \gc_collect_cycles(); // extensions using an event loop may otherwise leak the file descriptors to the loop
     }
 
@@ -88,9 +88,8 @@ abstract class AsyncTestCase extends PHPUnitTestCase
             await(call(\Closure::fromCallable([$this, 'setUpAsync'])));
         } catch (\Throwable $exception) {
             throw new \Error(\sprintf(
-                '%s::setUpAsync() failed: Uncaught %s: %s',
+                '%s::setUpAsync() failed: %s',
                 \str_replace("\0", '@', \get_class($this)), // replace NUL-byte in anonymous class name
-                \str_replace("\0", '@', \get_class($exception)),
                 $exception->getMessage()
             ), 0, $exception);
         }
@@ -119,14 +118,13 @@ abstract class AsyncTestCase extends PHPUnitTestCase
                 await(call(\Closure::fromCallable([$this, 'tearDownAsync'])));
             } catch (\Throwable $exception) {
                 throw new \Error(\sprintf(
-                    '%s::tearDownAsync() failed: Uncaught %s: %s',
+                    '%s::tearDownAsync() failed: %s',
                     \str_replace("\0", '@', \get_class($this)), // replace NUL-byte in anonymous class name
-                    \str_replace("\0", '@', \get_class($exception)),
                     $exception->getMessage()
                 ), 0, $exception);
+            } finally {
+                $this->checkLoop();
             }
-
-            $this->checkLoop();
         }
 
         $end = \microtime(true);
@@ -235,18 +233,22 @@ abstract class AsyncTestCase extends PHPUnitTestCase
             }
         }
 
-        if ($errors && !$this->hasFailed()) {
-            $this->fail(\implode("\n", $errors));
-        }
+        try {
+            if ($errors && !$this->hasFailed()) {
+                $this->fail(\implode("\n", $errors));
+            }
 
-        if (!isset($this->timeoutId)
-            && !$this->ignoreWatchers
-            && !$this->hasFailed()
-            && $info['enabled_watchers']['referenced'] + $info['enabled_watchers']['unreferenced'] > 0
-        ) {
-            $this->fail(
-                "Found enabled watchers at end of test '{$this->getName()}': " . \json_encode($info, \JSON_PRETTY_PRINT),
-            );
+            if (!isset($this->timeoutId)
+                && !$this->ignoreWatchers
+                && !$this->hasFailed()
+                && $info['enabled_watchers']['referenced'] + $info['enabled_watchers']['unreferenced'] > 0
+            ) {
+                $this->fail(
+                    "Found enabled watchers at end of test '{$this->getName()}': " . \json_encode($info, \JSON_PRETTY_PRINT),
+                );
+            }
+        } finally {
+            Loop::get()->clear();
         }
     }
 }

@@ -66,20 +66,6 @@ class AsyncTestCaseTest extends AsyncTestCase
         yield $throwException();
     }
 
-    public function testNestedLoop(): void
-    {
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('threw the error');
-
-        $loop = Loop::get();
-
-        $loop->defer(function () {
-            throw new \Exception('threw the error');
-        });
-
-        $loop->createControl()->run();
-    }
-
     public function testExpectingAnErrorThrown(): \Generator
     {
         $this->expectException(\Error::class);
