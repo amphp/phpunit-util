@@ -45,24 +45,6 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     }
 
     /**
-     * Called before each test. Similar to {@see TestCase::setUp()}, except the method may return a promise or
-     * coroutine (@see \Amp\call()} that will be awaited before executing the test.
-     */
-    protected function setUpAsync()
-    {
-        // Empty method to be overloaded by inheriting class if desired.
-    }
-
-    /**
-     * Called after each test. Similar to {@see TestCase::tearDown()}, except the method may return a promise or
-     * coroutine (@see \Amp\call()} that will be awaited before executing the next test.
-     */
-    protected function tearDownAsync()
-    {
-        // Empty method to be overloaded by inheriting class if desired.
-    }
-
-    /**
      * @codeCoverageIgnore Invoked before code coverage data is being collected.
      */
     final public function setName(string $name): void
@@ -84,16 +66,6 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 
         parent::setName($this->realTestName);
 
-        try {
-            await(call(\Closure::fromCallable([$this, 'setUpAsync'])));
-        } catch (\Throwable $exception) {
-            throw new \Error(\sprintf(
-                '%s::setUpAsync() failed: %s',
-                \str_replace("\0", '@', \get_class($this)), // replace NUL-byte in anonymous class name
-                $exception->getMessage()
-            ), 0, $exception);
-        }
-
         $start = \microtime(true);
 
         try {
@@ -113,19 +85,9 @@ abstract class AsyncTestCase extends PHPUnitTestCase
             if (isset($this->timeoutId)) {
                 Loop::cancel($this->timeoutId);
             }
-
-            try {
-                await(call(\Closure::fromCallable([$this, 'tearDownAsync'])));
-            } catch (\Throwable $exception) {
-                throw new \Error(\sprintf(
-                    '%s::tearDownAsync() failed: %s',
-                    \str_replace("\0", '@', \get_class($this)), // replace NUL-byte in anonymous class name
-                    $exception->getMessage()
-                ), 0, $exception);
-            } finally {
-                $this->checkLoop();
-            }
         }
+
+        $this->checkLoop();
 
         $end = \microtime(true);
 
@@ -228,8 +190,10 @@ abstract class AsyncTestCase extends PHPUnitTestCase
             try {
                 sleep(0);
                 break;
-            } catch (\Throwable $e) {
-                $errors[] = (string) $e;
+            } catch (\FiberError $exception) {
+                throw $exception;
+            } catch (\Throwable $exception) {
+                $errors[] = (string) $exception;
             }
         }
 
