@@ -6,10 +6,13 @@ use Amp\Deferred;
 use Amp\Delayed;
 use Amp\Loop;
 use Amp\PHPUnit\AsyncTestCase;
+use Amp\PHPUnit\LoopCaughtException;
+use Amp\PHPUnit\TestException;
 use Amp\Promise;
 use PHPUnit\Framework\AssertionFailedError;
 use function Amp\await;
 use function Amp\call;
+use function Amp\defer;
 use function Amp\sleep;
 
 class AsyncTestCaseTest extends AsyncTestCase
@@ -150,5 +153,20 @@ class AsyncTestCaseTest extends AsyncTestCase
         });
 
         $this->assertSame(2, $mock(1));
+    }
+
+    public function testThrowToEventLoop(): void
+    {
+        defer(function (): void {
+            throw new TestException('message');
+        });
+
+        $this->ignoreLoopWatchers();
+
+        $this->expectException(LoopCaughtException::class);
+        $pattern = "/(.+) thrown to event loop error handler: (.*)/";
+        $this->expectExceptionMessageMatches($pattern);
+
+        sleep(0);
     }
 }

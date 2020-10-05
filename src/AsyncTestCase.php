@@ -10,13 +10,12 @@ use PHPUnit\Framework\TestCase as PHPUnitTestCase;
 use function Amp\await;
 use function Amp\async;
 use function Amp\call;
-use function Amp\sleep;
 
 abstract class AsyncTestCase extends PHPUnitTestCase
 {
     const RUNTIME_PRECISION = 2;
 
-    private Deferred $timeoutDeferred;
+    private Deferred $deferred;
 
     private string $timeoutId;
 
@@ -30,18 +29,21 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 
     private bool $ignoreWatchers = false;
 
-    public function __construct(?string $name = null, array $data = [], $dataName = '')
-    {
-        parent::__construct($name, $data, $dataName);
-
-        $this->timeoutDeferred = new Deferred;
-    }
-
     protected function setUp(): void
     {
         $this->setUpInvoked = true;
         Loop::get()->clear(); // remove all watchers from the event loop
         \gc_collect_cycles(); // extensions using an event loop may otherwise leak the file descriptors to the loop
+
+        $this->deferred = new Deferred;
+
+        Loop::setErrorHandler(function (\Throwable $exception): void {
+            if ($this->deferred->isResolved()) {
+                return;
+            }
+
+            $this->deferred->fail(new LoopCaughtException($exception));
+        });
     }
 
     /**
@@ -74,20 +76,16 @@ abstract class AsyncTestCase extends PHPUnitTestCase
                     try {
                         return await(call([$this, $this->realTestName], ...$args));
                     } finally {
-                        if (!$this->timeoutDeferred->isResolved()) {
-                            $this->timeoutDeferred->resolve();
+                        if (!$this->deferred->isResolved()) {
+                            $this->deferred->resolve();
                         }
                     }
                 }),
-                $this->timeoutDeferred->promise()
+                $this->deferred->promise()
             ]);
         } finally {
-            if (isset($this->timeoutId)) {
-                Loop::cancel($this->timeoutId);
-            }
+            $this->clear();
         }
-
-        $this->checkLoop();
 
         $end = \microtime(true);
 
@@ -145,12 +143,17 @@ abstract class AsyncTestCase extends PHPUnitTestCase
                 $additionalInfo .= "\r\n\r\nInstall amphp/amp@^2.3 and set AMP_DEBUG_TRACE_WATCHERS=true as environment variable to trace watchers keeping the loop running. ";
             }
 
+            if ($this->deferred->isResolved()) {
+                return;
+            }
+
             try {
                 $this->fail('Expected test to complete before ' . $timeout . 'ms time limit' . $additionalInfo);
             } catch (AssertionFailedError $e) {
-                $this->timeoutDeferred->fail($e);
+                $this->deferred->fail($e);
             }
         });
+
         Loop::unreference($this->timeoutId);
     }
 
@@ -181,30 +184,17 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         return $mock;
     }
 
-    private function checkLoop(): void
+    private function clear(): void
     {
-        $info = Loop::getInfo();
-        $errors = [];
-
-        while (true) {
-            try {
-                sleep(0);
-                break;
-            } catch (\FiberError $exception) {
-                throw $exception;
-            } catch (\Throwable $exception) {
-                $errors[] = (string) $exception;
-            }
-        }
-
         try {
-            if ($errors && !$this->hasFailed()) {
-                $this->fail(\implode("\n", $errors));
+            if (isset($this->timeoutId)) {
+                Loop::cancel($this->timeoutId);
+                return;
             }
 
-            if (!isset($this->timeoutId)
-                && !$this->ignoreWatchers
-                && !$this->hasFailed()
+            $info = Loop::getInfo();
+
+            if (!$this->ignoreWatchers
                 && $info['enabled_watchers']['referenced'] + $info['enabled_watchers']['unreferenced'] > 0
             ) {
                 $this->fail(
