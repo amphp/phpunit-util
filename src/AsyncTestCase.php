@@ -27,7 +27,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 
     private bool $setUpInvoked = false;
 
-    private bool $ignoreWatchers = false;
+    private bool $ignoreWatchers = true;
 
     protected function setUp(): void
     {
@@ -155,6 +155,14 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         });
 
         Loop::unreference($this->timeoutId);
+    }
+
+    /**
+     * Test will fail if the event loop contains active watchers when the test ends.
+     */
+    final protected function checkLoopWatchers(): void
+    {
+        $this->ignoreWatchers = true;
     }
 
     /**

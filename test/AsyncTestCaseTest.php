@@ -161,8 +161,6 @@ class AsyncTestCaseTest extends AsyncTestCase
             throw new TestException('message');
         });
 
-        $this->ignoreLoopWatchers();
-
         $this->expectException(LoopCaughtException::class);
         $pattern = "/(.+) thrown to event loop error handler: (.*)/";
         $this->expectExceptionMessageMatches($pattern);
