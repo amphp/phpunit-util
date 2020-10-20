@@ -27,7 +27,9 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 
     private bool $setUpInvoked = false;
 
-    private bool $ignoreWatchers = true;
+    private bool $ignoreWatchers = false;
+
+    private bool $includeReferencedWatchers = false;
 
     protected function setUp(): void
     {
@@ -83,6 +85,9 @@ abstract class AsyncTestCase extends PHPUnitTestCase
                 }),
                 $this->deferred->promise()
             ]);
+        } catch (\Throwable $exception) {
+            $this->ignoreLoopWatchers();
+            throw $exception;
         } finally {
             $this->clear();
         }
@@ -158,11 +163,11 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     }
 
     /**
-     * Test will fail if the event loop contains active watchers when the test ends.
+     * Test will fail if the event loop contains active referenced watchers when the test ends.
      */
     final protected function checkLoopWatchers(): void
     {
-        $this->ignoreWatchers = true;
+        $this->ignoreWatchers = false;
     }
 
     /**
@@ -171,6 +176,23 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     final protected function ignoreLoopWatchers(): void
     {
         $this->ignoreWatchers = true;
+    }
+
+    /**
+     * Test will fail if the event loop contains active referenced or unreferenced watchers when the test ends.
+     */
+    final protected function checkUnreferencedLoopWatchers(): void
+    {
+        $this->ignoreWatchers = false;
+        $this->includeReferencedWatchers = true;
+    }
+
+    /**
+     * Test will not fail if the event loop contains active, but unreferenced, watchers when the test ends.
+     */
+    final protected function ignoreUnreferencedLoopWatchers(): void
+    {
+        $this->includeReferencedWatchers = false;
     }
 
     /**
@@ -200,11 +222,19 @@ abstract class AsyncTestCase extends PHPUnitTestCase
                 return;
             }
 
+            if ($this->ignoreWatchers) {
+                return;
+            }
+
             $info = Loop::getInfo();
 
-            if (!$this->ignoreWatchers
-                && $info['enabled_watchers']['referenced'] + $info['enabled_watchers']['unreferenced'] > 0
-            ) {
+            $watcherCount = $info['enabled_watchers']['referenced'];
+
+            if ($this->includeReferencedWatchers) {
+                $watcherCount += $info['enabled_watchers']['unreferenced'];
+            }
+
+            if ($watcherCount > 0) {
                 $this->fail(
                     "Found enabled watchers at end of test '{$this->getName()}': " . \json_encode($info, \JSON_PRETTY_PRINT),
                 );

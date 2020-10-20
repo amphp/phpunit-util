@@ -13,7 +13,7 @@ use PHPUnit\Framework\AssertionFailedError;
 use function Amp\await;
 use function Amp\call;
 use function Amp\defer;
-use function Amp\sleep;
+use function Amp\delay;
 
 class AsyncTestCaseTest extends AsyncTestCase
 {
@@ -143,7 +143,7 @@ class AsyncTestCaseTest extends AsyncTestCase
         $pattern = "/Expected test to take at least 100ms but instead took (\d+)ms/";
         $this->expectExceptionMessageMatches($pattern);
 
-        sleep(75);
+        delay(75);
     }
 
     public function testCreateCallback(): void
@@ -165,6 +165,36 @@ class AsyncTestCaseTest extends AsyncTestCase
         $pattern = "/(.+) thrown to event loop error handler: (.*)/";
         $this->expectExceptionMessageMatches($pattern);
 
-        sleep(0);
+        delay(0);
+    }
+
+    public function testFailsWithActiveLoopWatcher(): void
+    {
+        $this->expectException(AssertionFailedError::class);
+        $this->expectExceptionMessage("Found enabled watchers at end of test");
+
+        Loop::delay(10, $this->createCallback(0));
+    }
+
+    public function testIgnoreWatchers(): void
+    {
+        $this->ignoreLoopWatchers();
+
+        Loop::delay(10, $this->createCallback(0));
+    }
+
+    public function testIgnoreUnreferencedWatchers(): void
+    {
+        Loop::unreference(Loop::delay(10, $this->createCallback(0)));
+    }
+
+    public function testFailsWithActiveUnresolvedLoopWatcher(): void
+    {
+        $this->checkUnreferencedLoopWatchers();
+
+        $this->expectException(AssertionFailedError::class);
+        $this->expectExceptionMessage("Found enabled watchers at end of test");
+
+        Loop::unreference(Loop::delay(10, $this->createCallback(0)));
     }
 }
