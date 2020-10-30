@@ -10,8 +10,8 @@ use Amp\PHPUnit\LoopCaughtException;
 use Amp\PHPUnit\TestException;
 use Amp\Promise;
 use PHPUnit\Framework\AssertionFailedError;
+use function Amp\async;
 use function Amp\await;
-use function Amp\call;
 use function Amp\defer;
 use function Amp\delay;
 
@@ -32,7 +32,7 @@ class AsyncTestCaseTest extends AsyncTestCase
         return $returnDeferred->promise();
     }
 
-    public function testThatWeHandleNotPromiseReturned(): \Generator
+    public function testThatWeHandleNotPromiseReturned(): void
     {
         $testDeferred = new Deferred;
         $testData = new \stdClass;
@@ -42,7 +42,7 @@ class AsyncTestCaseTest extends AsyncTestCase
             $testDeferred->resolve();
         });
 
-        yield $testDeferred->promise();
+        await($testDeferred->promise());
 
         $this->assertTrue($testData->val, 'Expected our test to run on loop to completion');
     }
@@ -54,26 +54,24 @@ class AsyncTestCaseTest extends AsyncTestCase
         return $returnValue; // Return value used by testReturnValueFromDependentTest
     }
 
-    public function testExpectingAnExceptionThrown(): \Generator
+    public function testExpectingAnExceptionThrown(): Promise
     {
         $throwException = function () {
-            return call(function () {
-                yield new Delayed(100);
-                throw new \Exception('threw the error');
-            });
+            delay(100);
+            throw new \Exception('threw the error');
         };
 
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('threw the error');
 
-        yield $throwException();
+        return async($throwException);
     }
 
-    public function testExpectingAnErrorThrown(): \Generator
+    public function testExpectingAnErrorThrown(): Promise
     {
         $this->expectException(\Error::class);
 
-        yield call(function () {
+        return async(function () {
             throw new \Error;
         });
     }
@@ -92,7 +90,7 @@ class AsyncTestCaseTest extends AsyncTestCase
      *
      * @dataProvider argumentSupportProvider
      */
-    public function testArgumentSupport(string $foo, int $bar, bool $baz)
+    public function testArgumentSupport(string $foo, int $bar, bool $baz): void
     {
         $this->assertSame('foo', $foo);
         $this->assertSame(42, $bar);
@@ -104,25 +102,26 @@ class AsyncTestCaseTest extends AsyncTestCase
      *
      * @depends testReturningPromise
      */
-    public function testReturnValueFromDependentTest(string $value = null)
+    public function testReturnValueFromDependentTest(string $value = null): void
     {
         $this->assertSame('value', $value);
     }
 
-    public function testSetTimeout(): \Generator
+    public function testSetTimeout(): void
     {
         $this->setTimeout(100);
-        $this->assertNull(yield new Delayed(50));
+        $this->expectNotToPerformAssertions();
+        delay(50);
     }
 
-    public function testSetTimeoutWithCoroutine(): \Generator
+    public function testSetTimeoutWithPromise(): Promise
     {
         $this->setTimeout(100);
 
         $this->expectException(AssertionFailedError::class);
         $this->expectExceptionMessage('Expected test to complete before 100ms time limit');
 
-        yield new Delayed(200);
+        return new Delayed(200);
     }
 
     public function testSetTimeoutWithAwait(): void
@@ -132,7 +131,7 @@ class AsyncTestCaseTest extends AsyncTestCase
         $this->expectException(AssertionFailedError::class);
         $this->expectExceptionMessage('Expected test to complete before 100ms time limit');
 
-        await(new Delayed(200));
+        delay(200);
     }
 
     public function testSetMinimumRunTime(): void

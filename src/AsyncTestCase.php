@@ -4,12 +4,12 @@ namespace Amp\PHPUnit;
 
 use Amp\Deferred;
 use Amp\Loop;
+use Amp\Promise;
 use PHPUnit\Framework\AssertionFailedError;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase as PHPUnitTestCase;
 use function Amp\await;
 use function Amp\async;
-use function Amp\call;
 
 abstract class AsyncTestCase extends PHPUnitTestCase
 {
@@ -76,7 +76,11 @@ abstract class AsyncTestCase extends PHPUnitTestCase
             [$returnValue] = await([
                 async(function () use ($args): mixed {
                     try {
-                        return await(call([$this, $this->realTestName], ...$args));
+                        $result = ([$this, $this->realTestName])(...$args);
+                        if ($result instanceof Promise) {
+                            $result = await($result);
+                        }
+                        return $result;
                     } finally {
                         if (!$this->deferred->isResolved()) {
                             $this->deferred->resolve();
