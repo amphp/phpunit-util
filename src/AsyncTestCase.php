@@ -31,6 +31,14 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 
     private bool $includeReferencedWatchers = false;
 
+    /**
+     * Execute any needed cleanup after the test before loop watchers are checked.
+     */
+    protected function cleanup(): void
+    {
+        // Empty method in base class.
+    }
+
     protected function setUp(): void
     {
         $this->setUpInvoked = true;
@@ -73,22 +81,26 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         $start = \microtime(true);
 
         try {
-            [$returnValue] = await([
-                async(function () use ($args): mixed {
-                    try {
-                        $result = ([$this, $this->realTestName])(...$args);
-                        if ($result instanceof Promise) {
-                            $result = await($result);
+            try {
+                [$returnValue] = await([
+                    async(function () use ($args): mixed {
+                        try {
+                            $result = ([$this, $this->realTestName])(...$args);
+                            if ($result instanceof Promise) {
+                                $result = await($result);
+                            }
+                            return $result;
+                        } finally {
+                            if (!$this->deferred->isResolved()) {
+                                $this->deferred->resolve();
+                            }
                         }
-                        return $result;
-                    } finally {
-                        if (!$this->deferred->isResolved()) {
-                            $this->deferred->resolve();
-                        }
-                    }
-                }),
-                $this->deferred->promise()
-            ]);
+                    }),
+                    $this->deferred->promise()
+                ]);
+            } finally {
+                $this->cleanup();
+            }
         } catch (\Throwable $exception) {
             $this->ignoreLoopWatchers();
             throw $exception;

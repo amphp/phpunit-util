@@ -17,6 +17,17 @@ use function Amp\delay;
 
 class AsyncTestCaseTest extends AsyncTestCase
 {
+    public function cleanup(): void
+    {
+        parent::cleanup();
+
+        if ($this->getName() === 'testCleanupInvoked') {
+            $exception = new TestException;
+            $this->expectExceptionObject($exception);
+            throw $exception;
+        }
+    }
+
     public function testThatMethodRunsInLoopContext(): Promise
     {
         $returnDeferred = new Deferred; // make sure our test runs to completion
@@ -164,7 +175,7 @@ class AsyncTestCaseTest extends AsyncTestCase
         $pattern = "/(.+) thrown to event loop error handler: (.*)/";
         $this->expectExceptionMessageMatches($pattern);
 
-        delay(0);
+        await((new Deferred)->promise());
     }
 
     public function testFailsWithActiveLoopWatcher(): void
@@ -195,5 +206,10 @@ class AsyncTestCaseTest extends AsyncTestCase
         $this->expectExceptionMessage("Found enabled watchers at end of test");
 
         Loop::unreference(Loop::delay(10, $this->createCallback(0)));
+    }
+
+    public function testCleanupInvoked(): void
+    {
+        // Exception thrown in cleanup() to assert method is invoked.
     }
 }
