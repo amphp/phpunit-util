@@ -42,7 +42,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     protected function setUp(): void
     {
         $this->setUpInvoked = true;
-        Loop::get()->clear(); // remove all watchers from the event loop
+        Loop::getDriver()->clear(); // remove all watchers from the event loop
         \gc_collect_cycles(); // extensions using an event loop may otherwise leak the file descriptors to the loop
 
         $this->deferred = new Deferred;
@@ -155,7 +155,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 
             $additionalInfo = '';
 
-            $loop = Loop::get();
+            $loop = Loop::getDriver();
             if ($loop instanceof Loop\TracingDriver) {
                 $additionalInfo .= "\r\n\r\n" . $loop->dump();
             } elseif (\class_exists(Loop\TracingDriver::class)) {
@@ -256,7 +256,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
                 );
             }
         } finally {
-            Loop::get()->clear();
+            Loop::getDriver()->clear();
         }
     }
 }
