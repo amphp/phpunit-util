@@ -24,8 +24,15 @@
     },
     "require-dev": {
         "amphp/amp": "^3-dev",
-        "amphp/php-cs-fixer-config": "dev-master"
+        "amphp/php-cs-fixer-config": "dev-master",
+        "revolt/event-loop": "^1-dev"
     },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "git@github.com:revolt-php/event-loop.git"
+        }
+    ],
     "autoload": {
         "psr-4": {
             "Amp\\PHPUnit\\": "src"

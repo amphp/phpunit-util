@@ -55,13 +55,13 @@ class AsyncTestCaseTest extends AsyncTestCase
 
         await($testDeferred->promise());
 
-        $this->assertTrue($testData->val, 'Expected our test to run on loop to completion');
+        self::assertTrue($testData->val, 'Expected our test to run on loop to completion');
     }
 
     public function testReturningPromise(): Promise
     {
         $returnValue = new Delayed(100, 'value');
-        $this->assertInstanceOf(Promise::class, $returnValue); // An assertion is required for the test to pass
+        self::assertInstanceOf(Promise::class, $returnValue); // An assertion is required for the test to pass
         return $returnValue; // Return value used by testReturnValueFromDependentTest
     }
 
@@ -103,9 +103,9 @@ class AsyncTestCaseTest extends AsyncTestCase
      */
     public function testArgumentSupport(string $foo, int $bar, bool $baz): void
     {
-        $this->assertSame('foo', $foo);
-        $this->assertSame(42, $bar);
-        $this->assertTrue($baz);
+        self::assertSame('foo', $foo);
+        self::assertSame(42, $bar);
+        self::assertTrue($baz);
     }
 
     /**
@@ -115,7 +115,7 @@ class AsyncTestCaseTest extends AsyncTestCase
      */
     public function testReturnValueFromDependentTest(string $value = null): void
     {
-        $this->assertSame('value', $value);
+        self::assertSame('value', $value);
     }
 
     public function testSetTimeout(): void
@@ -162,7 +162,7 @@ class AsyncTestCaseTest extends AsyncTestCase
             return $value + 1;
         });
 
-        $this->assertSame(2, $mock(1));
+        self::assertSame(2, $mock(1));
     }
 
     public function testThrowToEventLoop(): void

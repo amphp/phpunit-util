@@ -3,17 +3,18 @@
 namespace Amp\PHPUnit;
 
 use Amp\Deferred;
-use Amp\Loop;
 use Amp\Promise;
 use PHPUnit\Framework\AssertionFailedError;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase as PHPUnitTestCase;
-use function Amp\await;
+use Revolt\EventLoop\Driver\TracingDriver;
+use Revolt\EventLoop\Loop;
 use function Amp\async;
+use function Amp\await;
 
 abstract class AsyncTestCase extends PHPUnitTestCase
 {
-    const RUNTIME_PRECISION = 2;
+    private const RUNTIME_PRECISION = 2;
 
     private Deferred $deferred;
 
@@ -30,6 +31,15 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     private bool $ignoreWatchers = false;
 
     private bool $includeReferencedWatchers = false;
+
+    /**
+     * @codeCoverageIgnore Invoked before code coverage data is being collected.
+     */
+    final public function setName(string $name): void
+    {
+        parent::setName($name);
+        $this->realTestName = $name;
+    }
 
     /**
      * Execute any needed cleanup after the test before loop watchers are checked.
@@ -56,20 +66,11 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         });
     }
 
-    /**
-     * @codeCoverageIgnore Invoked before code coverage data is being collected.
-     */
-    final public function setName(string $name): void
-    {
-        parent::setName($name);
-        $this->realTestName = $name;
-    }
-
     /** @internal */
     final protected function runAsyncTest(mixed ...$args): mixed
     {
         if (!$this->setUpInvoked) {
-            $this->fail(\sprintf(
+            self::fail(\sprintf(
                 '%s::setUp() overrides %s::setUp() without calling the parent method',
                 \str_replace("\0", '@', \get_class($this)), // replace NUL-byte in anonymous class name
                 self::class
@@ -96,7 +97,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
                             }
                         }
                     }),
-                    $this->deferred->promise()
+                    $this->deferred->promise(),
                 ]);
             } finally {
                 $this->cleanup();
@@ -113,7 +114,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         if ($this->minimumRuntime > 0) {
             $actualRuntime = (int) (\round($end - $start, self::RUNTIME_PRECISION) * 1000);
             $msg = 'Expected test to take at least %dms but instead took %dms';
-            $this->assertGreaterThanOrEqual(
+            self::assertGreaterThanOrEqual(
                 $this->minimumRuntime,
                 $actualRuntime,
                 \sprintf($msg, $this->minimumRuntime, $actualRuntime)
@@ -156,12 +157,10 @@ abstract class AsyncTestCase extends PHPUnitTestCase
             $additionalInfo = '';
 
             $loop = Loop::getDriver();
-            if ($loop instanceof Loop\TracingDriver) {
+            if ($loop instanceof TracingDriver) {
                 $additionalInfo .= "\r\n\r\n" . $loop->dump();
-            } elseif (\class_exists(Loop\TracingDriver::class)) {
-                $additionalInfo .= "\r\n\r\nSet AMP_DEBUG_TRACE_WATCHERS=true as environment variable to trace watchers keeping the loop running.";
             } else {
-                $additionalInfo .= "\r\n\r\nInstall amphp/amp@^2.3 and set AMP_DEBUG_TRACE_WATCHERS=true as environment variable to trace watchers keeping the loop running. ";
+                $additionalInfo .= "\r\n\r\nSet REVOLT_DEBUG_TRACE_WATCHERS=true as environment variable to trace watchers keeping the loop running.";
             }
 
             if ($this->deferred->isResolved()) {
@@ -220,7 +219,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     final protected function createCallback(int $invocationCount, callable $returnCallback = null): callable
     {
         $mock = $this->createMock(CallbackStub::class);
-        $invocationMocker = $mock->expects($this->exactly($invocationCount))
+        $invocationMocker = $mock->expects(self::exactly($invocationCount))
             ->method('__invoke');
 
         if ($returnCallback) {
@@ -251,8 +250,11 @@ abstract class AsyncTestCase extends PHPUnitTestCase
             }
 
             if ($watcherCount > 0) {
-                $this->fail(
-                    "Found enabled watchers at end of test '{$this->getName()}': " . \json_encode($info, \JSON_PRETTY_PRINT),
+                self::fail(
+                    "Found enabled watchers at end of test '{$this->getName()}': " . \json_encode(
+                        $info,
+                        \JSON_PRETTY_PRINT
+                    ),
                 );
             }
         } finally {
