@@ -2,19 +2,19 @@
 
 namespace Amp\PHPUnit;
 
-use Amp\Deferred;
-use Amp\Promise;
 use PHPUnit\Framework\AssertionFailedError;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase as PHPUnitTestCase;
-use Revolt\EventLoop\Driver\TracingDriver;
 use Revolt\EventLoop\Loop;
-use function Amp\async;
-use function Amp\await;
+use Revolt\EventLoop\Driver\TracingDriver;
+use Revolt\Future\Deferred;
+use Revolt\Future\Future;
+use function Revolt\Future\all;
+use function Revolt\Future\spawn;
 
 abstract class AsyncTestCase extends PHPUnitTestCase
 {
-    private const RUNTIME_PRECISION = 2;
+    const RUNTIME_PRECISION = 2;
 
     private Deferred $deferred;
 
@@ -58,11 +58,11 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         $this->deferred = new Deferred;
 
         Loop::setErrorHandler(function (\Throwable $exception): void {
-            if ($this->deferred->isResolved()) {
+            if ($this->deferred->isComplete()) {
                 return;
             }
 
-            $this->deferred->fail(new LoopCaughtException($exception));
+            $this->deferred->error(new LoopCaughtException($exception));
         });
     }
 
@@ -83,22 +83,22 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 
         try {
             try {
-                [$returnValue] = await([
-                    async(function () use ($args): mixed {
+                [$returnValue] = all(
+                    spawn(function () use ($args): mixed {
                         try {
                             $result = ([$this, $this->realTestName])(...$args);
-                            if ($result instanceof Promise) {
-                                $result = await($result);
+                            if ($result instanceof Future) {
+                                $result = $result->join();
                             }
                             return $result;
                         } finally {
-                            if (!$this->deferred->isResolved()) {
-                                $this->deferred->resolve();
+                            if (!$this->deferred->isComplete()) {
+                                $this->deferred->complete(null);
                             }
                         }
                     }),
-                    $this->deferred->promise(),
-                ]);
+                    $this->deferred->getFuture()
+                );
             } finally {
                 $this->cleanup();
             }
@@ -159,18 +159,20 @@ abstract class AsyncTestCase extends PHPUnitTestCase
             $loop = Loop::getDriver();
             if ($loop instanceof TracingDriver) {
                 $additionalInfo .= "\r\n\r\n" . $loop->dump();
+            } elseif (\class_exists(TracingDriver::class)) {
+                $additionalInfo .= "\r\n\r\nSet AMP_DEBUG_TRACE_WATCHERS=true as environment variable to trace watchers keeping the loop running.";
             } else {
                 $additionalInfo .= "\r\n\r\nSet REVOLT_DEBUG_TRACE_WATCHERS=true as environment variable to trace watchers keeping the loop running.";
             }
 
-            if ($this->deferred->isResolved()) {
+            if ($this->deferred->isComplete()) {
                 return;
             }
 
             try {
                 $this->fail('Expected test to complete before ' . $timeout . 'ms time limit' . $additionalInfo);
             } catch (AssertionFailedError $e) {
-                $this->deferred->fail($e);
+                $this->deferred->error($e);
             }
         });
 

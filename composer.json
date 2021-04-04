@@ -20,17 +20,22 @@
     "require": {
         "php": ">=8",
         "ext-json": "*",
+        "revolt/event-loop": "dev-main as 1-dev",
+        "revolt/future": "dev-main as 1-dev",
         "phpunit/phpunit": "^9"
     },
     "require-dev": {
-        "amphp/amp": "^3-dev",
-        "amphp/php-cs-fixer-config": "dev-master",
-        "revolt/event-loop": "^1-dev"
+        "amphp/amp": "dev-v3-revolt as 3.0",
+        "amphp/php-cs-fixer-config": "dev-master"
     },
     "repositories": [
         {
             "type": "vcs",
             "url": "git@github.com:revolt-php/event-loop.git"
+        },
+        {
+            "type": "vcs",
+            "url": "git@github.com:revolt-php/future.git"
         }
     ],
     "autoload": {

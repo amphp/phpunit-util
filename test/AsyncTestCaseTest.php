@@ -2,18 +2,17 @@
 
 namespace Amp\PHPUnit\Test;
 
-use Amp\Deferred;
-use Amp\Delayed;
-use Amp\Loop;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\PHPUnit\LoopCaughtException;
 use Amp\PHPUnit\TestException;
-use Amp\Promise;
 use PHPUnit\Framework\AssertionFailedError;
-use function Amp\async;
-use function Amp\await;
-use function Amp\defer;
-use function Amp\delay;
+use Revolt\EventLoop\Loop;
+use Revolt\Future\Deferred;
+use Revolt\Future\Future;
+use function Revolt\EventLoop\defer;
+use function Revolt\EventLoop\delay;
+use function Revolt\Future\spawn;
+
 
 class AsyncTestCaseTest extends AsyncTestCase
 {
@@ -28,44 +27,51 @@ class AsyncTestCaseTest extends AsyncTestCase
         }
     }
 
-    public function testThatMethodRunsInLoopContext(): Promise
+    public function testThatMethodRunsInLoopContext(): Future
     {
         $returnDeferred = new Deferred; // make sure our test runs to completion
         $testDeferred = new Deferred; // used by our defer callback to ensure we're running on the Loop
-        $testDeferred->promise()->onResolve(function ($err = null, $data = null) use ($returnDeferred) {
-            $this->assertEquals('foobar', $data, 'Expected the data to be what was resolved in Loop::defer');
-            $returnDeferred->resolve();
-        });
-        Loop::defer(function () use ($testDeferred) {
-            $testDeferred->resolve('foobar');
+
+        defer(function () use ($testDeferred, $returnDeferred): void {
+            $data = $testDeferred->getFuture()->join();
+            self::assertEquals('foobar', $data, 'Expected the data to be what was resolved in Loop::defer');
+            $returnDeferred->complete(null);
         });
 
-        return $returnDeferred->promise();
+        Loop::queue(function () use ($testDeferred): void {
+            $testDeferred->complete('foobar');
+        });
+
+        return $returnDeferred->getFuture();
     }
 
-    public function testThatWeHandleNotPromiseReturned(): void
+    public function testThatWeHandleNullReturn(): void
     {
         $testDeferred = new Deferred;
         $testData = new \stdClass;
         $testData->val = null;
         Loop::defer(function () use ($testData, $testDeferred) {
             $testData->val = true;
-            $testDeferred->resolve();
+            $testDeferred->complete(null);
         });
 
-        await($testDeferred->promise());
+        $testDeferred->getFuture()->join();
 
         self::assertTrue($testData->val, 'Expected our test to run on loop to completion');
     }
 
-    public function testReturningPromise(): Promise
+    public function testReturningFuture(): Future
     {
-        $returnValue = new Delayed(100, 'value');
-        self::assertInstanceOf(Promise::class, $returnValue); // An assertion is required for the test to pass
+        $deferred = new Deferred;
+
+        Loop::delay(100, fn () => $deferred->complete('value'));
+
+        $returnValue = $deferred->getFuture();
+        self::assertInstanceOf(Future::class, $returnValue); // An assertion is required for the test to pass
         return $returnValue; // Return value used by testReturnValueFromDependentTest
     }
 
-    public function testExpectingAnExceptionThrown(): Promise
+    public function testExpectingAnExceptionThrown(): Future
     {
         $throwException = function () {
             delay(100);
@@ -75,14 +81,14 @@ class AsyncTestCaseTest extends AsyncTestCase
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('threw the error');
 
-        return async($throwException);
+        return spawn($throwException);
     }
 
-    public function testExpectingAnErrorThrown(): Promise
+    public function testExpectingAnErrorThrown(): Future
     {
         $this->expectException(\Error::class);
 
-        return async(function () {
+        return spawn(function (): void {
             throw new \Error;
         });
     }
@@ -111,7 +117,7 @@ class AsyncTestCaseTest extends AsyncTestCase
     /**
      * @param string|null $value
      *
-     * @depends testReturningPromise
+     * @depends testReturningFuture
      */
     public function testReturnValueFromDependentTest(string $value = null): void
     {
@@ -125,14 +131,18 @@ class AsyncTestCaseTest extends AsyncTestCase
         delay(50);
     }
 
-    public function testSetTimeoutWithPromise(): Promise
+    public function testSetTimeoutWithFuture(): Future
     {
         $this->setTimeout(100);
 
         $this->expectException(AssertionFailedError::class);
         $this->expectExceptionMessage('Expected test to complete before 100ms time limit');
 
-        return new Delayed(200);
+        $deferred = new Deferred;
+
+        Loop::delay(200, fn () => $deferred->complete(null));
+
+        return $deferred->getFuture();
     }
 
     public function testSetTimeoutWithAwait(): void
@@ -175,7 +185,7 @@ class AsyncTestCaseTest extends AsyncTestCase
         $pattern = "/(.+) thrown to event loop error handler: (.*)/";
         $this->expectExceptionMessageMatches($pattern);
 
-        await((new Deferred)->promise());
+        (new Deferred)->getFuture()->join();
     }
 
     public function testFailsWithActiveLoopWatcher(): void
