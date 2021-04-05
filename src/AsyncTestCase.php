@@ -83,7 +83,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 
         try {
             try {
-                [$returnValue] = all(
+                [$returnValue] = all([
                     spawn(function () use ($args): mixed {
                         try {
                             $result = ([$this, $this->realTestName])(...$args);
@@ -98,7 +98,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
                         }
                     }),
                     $this->deferred->getFuture()
-                );
+                ]);
             } finally {
                 $this->cleanup();
             }
