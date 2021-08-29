@@ -19,11 +19,11 @@
     "require": {
         "php": ">=8",
         "ext-json": "*",
-        "amphp/amp": "dev-v3-revolt as 3.0",
         "revolt/event-loop": "dev-main as 1-dev",
         "phpunit/phpunit": "^9"
     },
     "require-dev": {
+        "amphp/amp": "dev-v3-revolt as 3.0",
         "amphp/php-cs-fixer-config": "dev-master"
     },
     "repositories": [
