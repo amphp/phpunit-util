@@ -2,26 +2,26 @@
 
 namespace Amp\PHPUnit;
 
+use Amp\Deferred;
+use Amp\Future;
 use PHPUnit\Framework\AssertionFailedError;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase as PHPUnitTestCase;
 use Revolt\EventLoop\Loop;
 use Revolt\EventLoop\Driver\TracingDriver;
-use Revolt\Future\Deferred;
-use Revolt\Future\Future;
-use function Revolt\Future\all;
-use function Revolt\Future\spawn;
+use function Amp\Future\all;
+use function Amp\Future\spawn;
 
 abstract class AsyncTestCase extends PHPUnitTestCase
 {
-    const RUNTIME_PRECISION = 2;
+    private const RUNTIME_PRECISION = 2;
 
     private Deferred $deferred;
 
     private string $timeoutId;
 
-    /** @var int Minimum runtime in milliseconds. */
-    private int $minimumRuntime = 0;
+    /** @var float Minimum runtime in seconds. */
+    private float $minimumRuntime = 0;
 
     /** @var string Temporary storage for actual test name. */
     private string $realTestName;
@@ -112,8 +112,8 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         $end = \microtime(true);
 
         if ($this->minimumRuntime > 0) {
-            $actualRuntime = (int) (\round($end - $start, self::RUNTIME_PRECISION) * 1000);
-            $msg = 'Expected test to take at least %dms but instead took %dms';
+            $actualRuntime = \round($end - $start, self::RUNTIME_PRECISION);
+            $msg = 'Expected test to take at least %0.3fs but instead took %0.3fs';
             self::assertGreaterThanOrEqual(
                 $this->minimumRuntime,
                 $actualRuntime,
@@ -133,23 +133,23 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     /**
      * Fails the test if the loop does not run for at least the given amount of time.
      *
-     * @param int $runtime Required run time in milliseconds.
+     * @param int $runtime Required run time in seconds.
      */
-    final protected function setMinimumRuntime(int $runtime): void
+    final protected function setMinimumRuntime(float $runtime): void
     {
-        if ($runtime < 1) {
-            throw new \Error('Minimum runtime must be at least 1ms');
+        if ($runtime < 0.001) {
+            throw new \Error('Minimum runtime must be at least 0.001s');
         }
 
-        $this->minimumRuntime = $runtime;
+        $this->minimumRuntime = \round($runtime, self::RUNTIME_PRECISION);
     }
 
     /**
      * Fails the test (and stops the loop) after the given timeout.
      *
-     * @param int $timeout Timeout in milliseconds.
+     * @param float $timeout Timeout in seconds.
      */
-    final protected function setTimeout(int $timeout): void
+    final protected function setTimeout(float $timeout): void
     {
         $this->timeoutId = Loop::delay($timeout, function () use ($timeout): void {
             Loop::setErrorHandler(null);
@@ -170,7 +170,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
             }
 
             try {
-                $this->fail('Expected test to complete before ' . $timeout . 'ms time limit' . $additionalInfo);
+                $this->fail(\sprintf('Expected test to complete before %0.3fs time limit%s', $timeout, $additionalInfo));
             } catch (AssertionFailedError $e) {
                 $this->deferred->error($e);
             }

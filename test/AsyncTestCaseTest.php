@@ -2,16 +2,16 @@
 
 namespace Amp\PHPUnit\Test;
 
+use Amp\Deferred;
+use Amp\Future;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\PHPUnit\LoopCaughtException;
 use Amp\PHPUnit\TestException;
 use PHPUnit\Framework\AssertionFailedError;
 use Revolt\EventLoop\Loop;
-use Revolt\Future\Deferred;
-use Revolt\Future\Future;
+use function Amp\Future\spawn;
 use function Revolt\EventLoop\defer;
 use function Revolt\EventLoop\delay;
-use function Revolt\Future\spawn;
 
 
 class AsyncTestCaseTest extends AsyncTestCase
@@ -64,7 +64,7 @@ class AsyncTestCaseTest extends AsyncTestCase
     {
         $deferred = new Deferred;
 
-        Loop::delay(100, fn () => $deferred->complete('value'));
+        Loop::delay(0.1, fn () => $deferred->complete('value'));
 
         $returnValue = $deferred->getFuture();
         self::assertInstanceOf(Future::class, $returnValue); // An assertion is required for the test to pass
@@ -74,7 +74,7 @@ class AsyncTestCaseTest extends AsyncTestCase
     public function testExpectingAnExceptionThrown(): Future
     {
         $throwException = function () {
-            delay(100);
+            delay(0.1);
             throw new \Exception('threw the error');
         };
 
@@ -126,17 +126,17 @@ class AsyncTestCaseTest extends AsyncTestCase
 
     public function testSetTimeout(): void
     {
-        $this->setTimeout(100);
+        $this->setTimeout(0.1);
         $this->expectNotToPerformAssertions();
-        delay(50);
+        delay(0.05);
     }
 
     public function testSetTimeoutWithFuture(): Future
     {
-        $this->setTimeout(100);
+        $this->setTimeout(0.1);
 
         $this->expectException(AssertionFailedError::class);
-        $this->expectExceptionMessage('Expected test to complete before 100ms time limit');
+        $this->expectExceptionMessage('Expected test to complete before 0.100s time limit');
 
         $deferred = new Deferred;
 
@@ -147,23 +147,23 @@ class AsyncTestCaseTest extends AsyncTestCase
 
     public function testSetTimeoutWithAwait(): void
     {
-        $this->setTimeout(100);
+        $this->setTimeout(0.1);
 
         $this->expectException(AssertionFailedError::class);
-        $this->expectExceptionMessage('Expected test to complete before 100ms time limit');
+        $this->expectExceptionMessage('Expected test to complete before 0.100s time limit');
 
-        delay(200);
+        delay(0.2);
     }
 
     public function testSetMinimumRunTime(): void
     {
-        $this->setMinimumRuntime(100);
+        $this->setMinimumRuntime(0.1);
 
         $this->expectException(AssertionFailedError::class);
-        $pattern = "/Expected test to take at least 100ms but instead took (\d+)ms/";
+        $pattern = "/Expected test to take at least 0.100s but instead took 0.(\d+)s/";
         $this->expectExceptionMessageMatches($pattern);
 
-        delay(75);
+        delay(0.05);
     }
 
     public function testCreateCallback(): void
@@ -193,19 +193,19 @@ class AsyncTestCaseTest extends AsyncTestCase
         $this->expectException(AssertionFailedError::class);
         $this->expectExceptionMessage("Found enabled watchers at end of test");
 
-        Loop::delay(10, $this->createCallback(0));
+        Loop::delay(0.01, $this->createCallback(0));
     }
 
     public function testIgnoreWatchers(): void
     {
         $this->ignoreLoopWatchers();
 
-        Loop::delay(10, $this->createCallback(0));
+        Loop::delay(0.01, $this->createCallback(0));
     }
 
     public function testIgnoreUnreferencedWatchers(): void
     {
-        Loop::unreference(Loop::delay(10, $this->createCallback(0)));
+        Loop::unreference(Loop::delay(0.01, $this->createCallback(0)));
     }
 
     public function testFailsWithActiveUnresolvedLoopWatcher(): void
@@ -215,7 +215,7 @@ class AsyncTestCaseTest extends AsyncTestCase
         $this->expectException(AssertionFailedError::class);
         $this->expectExceptionMessage("Found enabled watchers at end of test");
 
-        Loop::unreference(Loop::delay(10, $this->createCallback(0)));
+        Loop::unreference(Loop::delay(0.01, $this->createCallback(0)));
     }
 
     public function testCleanupInvoked(): void

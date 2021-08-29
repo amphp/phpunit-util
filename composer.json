@@ -1,6 +1,6 @@
 {
     "name": "amphp/phpunit-util",
-    "homepage": "http://amphp.org/phpunit-util",
+    "homepage": "https://amphp.org/phpunit-util",
     "description": "Helper package to ease testing with PHPUnit.",
     "license": "MIT",
     "authors": [
@@ -14,28 +14,22 @@
         }
     ],
     "support": {
-        "issues": "https://github.com/amphp/phpunit-util/issues",
-        "irc": "irc://irc.freenode.org/amphp"
+        "issues": "https://github.com/amphp/phpunit-util/issues"
     },
     "require": {
         "php": ">=8",
         "ext-json": "*",
+        "amphp/amp": "dev-v3-revolt as 3.0",
         "revolt/event-loop": "dev-main as 1-dev",
-        "revolt/future": "dev-main as 1-dev",
         "phpunit/phpunit": "^9"
     },
     "require-dev": {
-        "amphp/amp": "dev-v3-revolt as 3.0",
         "amphp/php-cs-fixer-config": "dev-master"
     },
     "repositories": [
         {
             "type": "vcs",
-            "url": "git@github.com:revolt-php/event-loop.git"
-        },
-        {
-            "type": "vcs",
-            "url": "git@github.com:revolt-php/future.git"
+            "url": "git@github.com:revoltphp/event-loop.git"
         }
     ],
     "autoload": {
