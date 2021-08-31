@@ -7,6 +7,8 @@ use Amp\Future;
 use PHPUnit\Framework\AssertionFailedError;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase as PHPUnitTestCase;
+use Revolt\EventLoop\Driver;
+use Revolt\EventLoop\DriverFactory;
 use Revolt\EventLoop\Loop;
 use Revolt\EventLoop\Driver\TracingDriver;
 use function Amp\Future\all;
@@ -32,6 +34,8 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 
     private bool $includeReferencedWatchers = false;
 
+    private Driver $driver;
+
     /**
      * @codeCoverageIgnore Invoked before code coverage data is being collected.
      */
@@ -49,10 +53,18 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         // Empty method in base class.
     }
 
+    /**
+     * @return Driver A (new) event loop driver to be used for this test. Base method uses default driver factory.
+     */
+    protected function createLoop(): Driver
+    {
+        return (new DriverFactory())->create();
+    }
+
     protected function setUp(): void
     {
         $this->setUpInvoked = true;
-        Loop::getDriver()->clear(); // remove all watchers from the event loop
+        Loop::setDriver($this->driver = $this->createLoop()); // Replace the active event loop.
         \gc_collect_cycles(); // extensions using an event loop may otherwise leak the file descriptors to the loop
 
         $this->deferred = new Deferred;
@@ -213,7 +225,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     }
 
     /**
-     * @param int           $invocationCount Number of times the callback must be invoked or the test will fail.
+     * @param int $invocationCount Number of times the callback must be invoked or the test will fail.
      * @param callable|null $returnCallback Callable providing a return value for the callback.
      *
      * @return callable|MockObject Mock object having only an __invoke method.
@@ -260,7 +272,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
                 );
             }
         } finally {
-            Loop::getDriver()->clear();
+            $this->driver->stop();
         }
     }
 }
