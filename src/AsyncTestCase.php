@@ -7,8 +7,6 @@ use Amp\Future;
 use PHPUnit\Framework\AssertionFailedError;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase as PHPUnitTestCase;
-use Revolt\EventLoop\Driver;
-use Revolt\EventLoop\DriverFactory;
 use Revolt\EventLoop\Loop;
 use Revolt\EventLoop\Driver\TracingDriver;
 use function Amp\Future\all;
@@ -51,19 +49,9 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         // Empty method in base class.
     }
 
-    /**
-     * @return Driver A (new) event loop driver to be used for this test. Base method uses default driver factory.
-     */
-    protected function createLoop(): Driver
-    {
-        return (new DriverFactory())->create();
-    }
-
     protected function setUp(): void
     {
         $this->setUpInvoked = true;
-        Loop::getDriver()->stop(); // Stop active driver in case prior test did not end gracefully.
-        Loop::setDriver($this->createLoop()); // Replace the active event loop.
         \gc_collect_cycles(); // extensions using an event loop may otherwise leak the file descriptors to the loop
 
         $this->deferred = new Deferred;
@@ -113,11 +101,10 @@ abstract class AsyncTestCase extends PHPUnitTestCase
             } finally {
                 $this->cleanup();
             }
-        } catch (\Throwable $exception) {
-            $this->ignoreLoopWatchers();
-            throw $exception;
         } finally {
-            $this->clear();
+            if (isset($this->timeoutId)) {
+                Loop::cancel($this->timeoutId);
+            }
         }
 
         $end = \microtime(true);
@@ -191,39 +178,6 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     }
 
     /**
-     * Test will fail if the event loop contains active referenced watchers when the test ends.
-     */
-    final protected function checkLoopWatchers(): void
-    {
-        $this->ignoreWatchers = false;
-    }
-
-    /**
-     * Test will not fail if the event loop contains active watchers when the test ends.
-     */
-    final protected function ignoreLoopWatchers(): void
-    {
-        $this->ignoreWatchers = true;
-    }
-
-    /**
-     * Test will fail if the event loop contains active referenced or unreferenced watchers when the test ends.
-     */
-    final protected function checkUnreferencedLoopWatchers(): void
-    {
-        $this->ignoreWatchers = false;
-        $this->includeReferencedWatchers = true;
-    }
-
-    /**
-     * Test will not fail if the event loop contains active, but unreferenced, watchers when the test ends.
-     */
-    final protected function ignoreUnreferencedLoopWatchers(): void
-    {
-        $this->includeReferencedWatchers = false;
-    }
-
-    /**
      * @param int $invocationCount Number of times the callback must be invoked or the test will fail.
      * @param callable|null $returnCallback Callable providing a return value for the callback.
      *
@@ -240,38 +194,5 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         }
 
         return $mock;
-    }
-
-    private function clear(): void
-    {
-        try {
-            if (isset($this->timeoutId)) {
-                Loop::cancel($this->timeoutId);
-                return;
-            }
-
-            if ($this->ignoreWatchers) {
-                return;
-            }
-
-            $info = Loop::getInfo();
-
-            $watcherCount = $info['enabled_watchers']['referenced'];
-
-            if ($this->includeReferencedWatchers) {
-                $watcherCount += $info['enabled_watchers']['unreferenced'];
-            }
-
-            if ($watcherCount > 0) {
-                self::fail(
-                    "Found enabled watchers at end of test '{$this->getName()}': " . \json_encode(
-                        $info,
-                        \JSON_PRETTY_PRINT
-                    ),
-                );
-            }
-        } finally {
-            Loop::getDriver()->stop();
-        }
     }
 }

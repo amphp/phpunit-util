@@ -188,36 +188,6 @@ class AsyncTestCaseTest extends AsyncTestCase
         (new Deferred)->getFuture()->join();
     }
 
-    public function testFailsWithActiveLoopWatcher(): void
-    {
-        $this->expectException(AssertionFailedError::class);
-        $this->expectExceptionMessage("Found enabled watchers at end of test");
-
-        Loop::delay(0.01, $this->createCallback(0));
-    }
-
-    public function testIgnoreWatchers(): void
-    {
-        $this->ignoreLoopWatchers();
-
-        Loop::delay(0.01, $this->createCallback(0));
-    }
-
-    public function testIgnoreUnreferencedWatchers(): void
-    {
-        Loop::unreference(Loop::delay(0.01, $this->createCallback(0)));
-    }
-
-    public function testFailsWithActiveUnresolvedLoopWatcher(): void
-    {
-        $this->checkUnreferencedLoopWatchers();
-
-        $this->expectException(AssertionFailedError::class);
-        $this->expectExceptionMessage("Found enabled watchers at end of test");
-
-        Loop::unreference(Loop::delay(0.01, $this->createCallback(0)));
-    }
-
     public function testCleanupInvoked(): void
     {
         // Exception thrown in cleanup() to assert method is invoked.
