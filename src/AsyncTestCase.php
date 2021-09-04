@@ -34,8 +34,6 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 
     private bool $includeReferencedWatchers = false;
 
-    private Driver $driver;
-
     /**
      * @codeCoverageIgnore Invoked before code coverage data is being collected.
      */
@@ -64,7 +62,8 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     protected function setUp(): void
     {
         $this->setUpInvoked = true;
-        Loop::setDriver($this->driver = $this->createLoop()); // Replace the active event loop.
+        Loop::getDriver()->stop(); // Stop active driver in case prior test did not end gracefully.
+        Loop::setDriver($this->createLoop()); // Replace the active event loop.
         \gc_collect_cycles(); // extensions using an event loop may otherwise leak the file descriptors to the loop
 
         $this->deferred = new Deferred;
@@ -168,9 +167,9 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 
             $additionalInfo = '';
 
-            $loop = Loop::getDriver();
-            if ($loop instanceof TracingDriver) {
-                $additionalInfo .= "\r\n\r\n" . $loop->dump();
+            $driver = Loop::getDriver();
+            if ($driver instanceof TracingDriver) {
+                $additionalInfo .= "\r\n\r\n" . $driver->dump();
             } elseif (\class_exists(TracingDriver::class)) {
                 $additionalInfo .= "\r\n\r\nSet AMP_DEBUG_TRACE_WATCHERS=true as environment variable to trace watchers keeping the loop running.";
             } else {
@@ -272,7 +271,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
                 );
             }
         } finally {
-            $this->driver->stop();
+            Loop::getDriver()->stop();
         }
     }
 }
