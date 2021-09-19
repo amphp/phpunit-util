@@ -19,7 +19,7 @@
     "require": {
         "php": ">=8",
         "ext-json": "*",
-        "revolt/event-loop": "dev-main as 0.1",
+        "revolt/event-loop": "dev-main as 1.0",
         "phpunit/phpunit": "^9"
     },
     "require-dev": {
