@@ -9,8 +9,8 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase as PHPUnitTestCase;
 use Revolt\EventLoop\Loop;
 use Revolt\EventLoop\Driver\TracingDriver;
+use function Amp\coroutine;
 use function Amp\Future\all;
-use function Amp\Future\spawn;
 
 abstract class AsyncTestCase extends PHPUnitTestCase
 {
@@ -83,11 +83,11 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         try {
             try {
                 [$returnValue] = all([
-                    spawn(function () use ($args): mixed {
+                    coroutine(function () use ($args): mixed {
                         try {
                             $result = ([$this, $this->realTestName])(...$args);
                             if ($result instanceof Future) {
-                                $result = $result->join();
+                                $result = $result->await();
                             }
                             return $result;
                         } finally {
