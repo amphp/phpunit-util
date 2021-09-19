@@ -19,19 +19,13 @@
     "require": {
         "php": ">=8",
         "ext-json": "*",
-        "revolt/event-loop": "dev-main as 1-dev",
+        "revolt/event-loop": "dev-main as 0.1",
         "phpunit/phpunit": "^9"
     },
     "require-dev": {
         "amphp/amp": "dev-v3-revolt as 3.0",
         "amphp/php-cs-fixer-config": "dev-master"
     },
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "git@github.com:revoltphp/event-loop.git"
-        }
-    ],
     "autoload": {
         "psr-4": {
             "Amp\\PHPUnit\\": "src"

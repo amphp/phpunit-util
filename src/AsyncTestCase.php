@@ -28,10 +28,6 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 
     private bool $setUpInvoked = false;
 
-    private bool $ignoreWatchers = false;
-
-    private bool $includeReferencedWatchers = false;
-
     /**
      * @codeCoverageIgnore Invoked before code coverage data is being collected.
      */
