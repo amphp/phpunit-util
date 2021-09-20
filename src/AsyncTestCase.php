@@ -84,6 +84,13 @@ abstract class AsyncTestCase extends PHPUnitTestCase
                             if ($result instanceof Future) {
                                 $result = $result->await();
                             }
+
+                            // Force an extra tick of the event loop to ensure any uncaught exceptions are
+                            // forwarded to the event loop handler before the test ends.
+                            $deferred = new Deferred;
+                            Loop::defer(static fn () => $deferred->complete(null));
+                            $deferred->getFuture()->await();
+
                             return $result;
                         } finally {
                             if (!$this->deferred->isComplete()) {
