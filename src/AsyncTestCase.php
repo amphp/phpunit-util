@@ -48,7 +48,6 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     protected function setUp(): void
     {
         $this->setUpInvoked = true;
-        \gc_collect_cycles(); // extensions using an event loop may otherwise leak the file descriptors to the loop
 
         $this->deferred = new Deferred;
 
@@ -101,6 +100,8 @@ abstract class AsyncTestCase extends PHPUnitTestCase
             if (isset($this->timeoutId)) {
                 Loop::cancel($this->timeoutId);
             }
+
+            \gc_collect_cycles(); // Throw from as many destructors as possible.
         }
 
         $end = \microtime(true);
