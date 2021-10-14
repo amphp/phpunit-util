@@ -7,7 +7,7 @@ use Amp\Future;
 use PHPUnit\Framework\AssertionFailedError;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase as PHPUnitTestCase;
-use Revolt\EventLoop\Loop;
+use Revolt\EventLoop;
 use Revolt\EventLoop\Driver\TracingDriver;
 use function Amp\coroutine;
 use function Amp\Future\all;
@@ -51,7 +51,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 
         $this->deferred = new Deferred;
 
-        Loop::setErrorHandler(function (\Throwable $exception): void {
+        EventLoop::setErrorHandler(function (\Throwable $exception): void {
             if ($this->deferred->isComplete()) {
                 return;
             }
@@ -88,7 +88,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
                             // Force an extra tick of the event loop to ensure any uncaught exceptions are
                             // forwarded to the event loop handler before the test ends.
                             $deferred = new Deferred;
-                            Loop::defer(static fn () => $deferred->complete(null));
+                            EventLoop::defer(static fn () => $deferred->complete(null));
                             $deferred->getFuture()->await();
 
                             return $result;
@@ -105,7 +105,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
             }
         } finally {
             if (isset($this->timeoutId)) {
-                Loop::cancel($this->timeoutId);
+                EventLoop::cancel($this->timeoutId);
             }
 
             \gc_collect_cycles(); // Throw from as many destructors as possible.
@@ -153,12 +153,12 @@ abstract class AsyncTestCase extends PHPUnitTestCase
      */
     final protected function setTimeout(float $timeout): void
     {
-        $this->timeoutId = Loop::delay($timeout, function () use ($timeout): void {
-            Loop::setErrorHandler(null);
+        $this->timeoutId = EventLoop::delay($timeout, function () use ($timeout): void {
+            EventLoop::setErrorHandler(null);
 
             $additionalInfo = '';
 
-            $driver = Loop::getDriver();
+            $driver = EventLoop::getDriver();
             if ($driver instanceof TracingDriver) {
                 $additionalInfo .= "\r\n\r\n" . $driver->dump();
             } elseif (\class_exists(TracingDriver::class)) {
@@ -178,7 +178,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
             }
         });
 
-        Loop::unreference($this->timeoutId);
+        EventLoop::unreference($this->timeoutId);
     }
 
     /**
