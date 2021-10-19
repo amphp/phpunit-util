@@ -11,7 +11,6 @@ use PHPUnit\Framework\AssertionFailedError;
 use Revolt\EventLoop;
 use function Amp\coroutine;
 use function Amp\delay;
-use function Revolt\launch;
 
 
 class AsyncTestCaseTest extends AsyncTestCase
@@ -32,7 +31,7 @@ class AsyncTestCaseTest extends AsyncTestCase
         $returnDeferred = new Deferred; // make sure our test runs to completion
         $testDeferred = new Deferred; // used by our defer callback to ensure we're running on the Loop
 
-        launch(function () use ($testDeferred, $returnDeferred): void {
+        EventLoop::queue(function () use ($testDeferred, $returnDeferred): void {
             $data = $testDeferred->getFuture()->await();
             self::assertEquals('foobar', $data, 'Expected the data to be what was resolved in EventLoop::defer');
             $returnDeferred->complete(null);
@@ -179,7 +178,7 @@ class AsyncTestCaseTest extends AsyncTestCase
     {
         $this->setTimeout(0.1);
 
-        launch(static fn () => throw new TestException('message'));
+        EventLoop::queue(static fn () => throw new TestException('message'));
 
         $this->expectException(LoopCaughtException::class);
         $pattern = "/(.+) thrown to event loop error handler: (.*)/";
