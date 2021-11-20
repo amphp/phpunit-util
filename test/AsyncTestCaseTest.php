@@ -9,9 +9,8 @@ use Amp\PHPUnit\LoopCaughtException;
 use Amp\PHPUnit\TestException;
 use PHPUnit\Framework\AssertionFailedError;
 use Revolt\EventLoop;
-use function Amp\coroutine;
 use function Amp\delay;
-
+use function Amp\launch;
 
 class AsyncTestCaseTest extends AsyncTestCase
 {
@@ -80,14 +79,14 @@ class AsyncTestCaseTest extends AsyncTestCase
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('threw the error');
 
-        return coroutine($throwException);
+        return launch($throwException);
     }
 
     public function testExpectingAnErrorThrown(): Future
     {
         $this->expectException(\Error::class);
 
-        return coroutine(function (): void {
+        return launch(function (): void {
             throw new \Error;
         });
     }
