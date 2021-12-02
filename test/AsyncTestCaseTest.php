@@ -2,7 +2,7 @@
 
 namespace Amp\PHPUnit\Test;
 
-use Amp\Deferred;
+use Amp\DeferredFuture;
 use Amp\Future;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\PHPUnit\LoopCaughtException;
@@ -27,13 +27,13 @@ class AsyncTestCaseTest extends AsyncTestCase
 
     public function testThatMethodRunsInLoopContext(): Future
     {
-        $returnDeferred = new Deferred; // make sure our test runs to completion
-        $testDeferred = new Deferred; // used by our defer callback to ensure we're running on the Loop
+        $returnDeferred = new DeferredFuture; // make sure our test runs to completion
+        $testDeferred = new DeferredFuture; // used by our defer callback to ensure we're running on the Loop
 
         EventLoop::queue(function () use ($testDeferred, $returnDeferred): void {
             $data = $testDeferred->getFuture()->await();
             self::assertEquals('foobar', $data, 'Expected the data to be what was resolved in EventLoop::defer');
-            $returnDeferred->complete(null);
+            $returnDeferred->complete();
         });
 
         EventLoop::queue(function () use ($testDeferred): void {
@@ -45,7 +45,7 @@ class AsyncTestCaseTest extends AsyncTestCase
 
     public function testThatWeHandleNullReturn(): void
     {
-        $testDeferred = new Deferred;
+        $testDeferred = new DeferredFuture;
         $testData = new \stdClass;
         $testData->val = null;
         EventLoop::defer(function () use ($testData, $testDeferred) {
@@ -60,7 +60,7 @@ class AsyncTestCaseTest extends AsyncTestCase
 
     public function testReturningFuture(): Future
     {
-        $deferred = new Deferred;
+        $deferred = new DeferredFuture;
 
         EventLoop::delay(0.1, fn () => $deferred->complete('value'));
 
@@ -136,9 +136,9 @@ class AsyncTestCaseTest extends AsyncTestCase
         $this->expectException(AssertionFailedError::class);
         $this->expectExceptionMessage('Expected test to complete before 0.100s time limit');
 
-        $deferred = new Deferred;
+        $deferred = new DeferredFuture;
 
-        EventLoop::delay(0.2, fn () => $deferred->complete(null));
+        EventLoop::delay(0.2, fn () => $deferred->complete());
 
         return $deferred->getFuture();
     }
@@ -183,7 +183,7 @@ class AsyncTestCaseTest extends AsyncTestCase
         $pattern = "/(.+) thrown to event loop error handler: (.*)/";
         $this->expectExceptionMessageMatches($pattern);
 
-        (new Deferred)->getFuture()->await();
+        (new DeferredFuture)->getFuture()->await();
     }
 
     public function testCleanupInvoked(): void
