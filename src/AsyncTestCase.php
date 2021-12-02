@@ -2,7 +2,7 @@
 
 namespace Amp\PHPUnit;
 
-use Amp\Deferred;
+use Amp\DeferredFuture;
 use Amp\Future;
 use PHPUnit\Framework\AssertionFailedError;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -16,7 +16,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 {
     private const RUNTIME_PRECISION = 2;
 
-    private Deferred $deferred;
+    private DeferredFuture $deferred;
 
     private string $timeoutId;
 
@@ -49,7 +49,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     {
         $this->setUpInvoked = true;
 
-        $this->deferred = new Deferred;
+        $this->deferred = new DeferredFuture();
 
         EventLoop::setErrorHandler(function (\Throwable $exception): void {
             if ($this->deferred->isComplete()) {
@@ -87,14 +87,14 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 
                             // Force an extra tick of the event loop to ensure any uncaught exceptions are
                             // forwarded to the event loop handler before the test ends.
-                            $deferred = new Deferred;
-                            EventLoop::defer(static fn () => $deferred->complete(null));
+                            $deferred = new DeferredFuture();
+                            EventLoop::defer(static fn () => $deferred->complete());
                             $deferred->getFuture()->await();
 
                             return $result;
                         } finally {
                             if (!$this->deferred->isComplete()) {
-                                $this->deferred->complete(null);
+                                $this->deferred->complete();
                             }
                         }
                     }),
@@ -135,7 +135,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     /**
      * Fails the test if the loop does not run for at least the given amount of time.
      *
-     * @param int $runtime Required run time in seconds.
+     * @param float $runtime Required run time in seconds.
      */
     final protected function setMinimumRuntime(float $runtime): void
     {
