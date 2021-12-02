@@ -185,9 +185,9 @@ abstract class AsyncTestCase extends PHPUnitTestCase
      * @param int $invocationCount Number of times the callback must be invoked or the test will fail.
      * @param callable|null $returnCallback Callable providing a return value for the callback.
      *
-     * @return callable|MockObject Mock object having only an __invoke method.
+     * @return \Closure&MockObject Mock object having only an __invoke method.
      */
-    final protected function createCallback(int $invocationCount, callable $returnCallback = null): callable
+    final protected function createCallback(int $invocationCount, callable $returnCallback = null): \Closure
     {
         $mock = $this->createMock(CallbackStub::class);
         $invocationMocker = $mock->expects(self::exactly($invocationCount))
@@ -197,6 +197,6 @@ abstract class AsyncTestCase extends PHPUnitTestCase
             $invocationMocker->willReturnCallback($returnCallback);
         }
 
-        return $mock;
+        return \Closure::fromCallable($mock);
     }
 }
