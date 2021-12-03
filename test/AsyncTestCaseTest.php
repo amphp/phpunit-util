@@ -5,8 +5,8 @@ namespace Amp\PHPUnit\Test;
 use Amp\DeferredFuture;
 use Amp\Future;
 use Amp\PHPUnit\AsyncTestCase;
-use Amp\PHPUnit\LoopCaughtException;
 use Amp\PHPUnit\TestException;
+use Amp\PHPUnit\UnhandledException;
 use PHPUnit\Framework\AssertionFailedError;
 use Revolt\EventLoop;
 use function Amp\async;
@@ -25,14 +25,14 @@ class AsyncTestCaseTest extends AsyncTestCase
         }
     }
 
-    public function testThatMethodRunsInLoopContext(): Future
+    public function testThatMethodRunsInEventLoopContext(): Future
     {
         $returnDeferred = new DeferredFuture; // make sure our test runs to completion
         $testDeferred = new DeferredFuture; // used by our defer callback to ensure we're running on the Loop
 
         EventLoop::queue(function () use ($testDeferred, $returnDeferred): void {
             $data = $testDeferred->getFuture()->await();
-            self::assertEquals('foobar', $data, 'Expected the data to be what was resolved in EventLoop::defer');
+            self::assertSame('foobar', $data);
             $returnDeferred->complete();
         });
 
@@ -43,19 +43,20 @@ class AsyncTestCaseTest extends AsyncTestCase
         return $returnDeferred->getFuture();
     }
 
-    public function testThatWeHandleNullReturn(): void
+    public function testHandleNullReturn(): void
     {
         $testDeferred = new DeferredFuture;
         $testData = new \stdClass;
-        $testData->val = null;
+        $testData->val = 0;
+
         EventLoop::defer(function () use ($testData, $testDeferred) {
-            $testData->val = true;
-            $testDeferred->complete(null);
+            $testData->val++;
+            $testDeferred->complete();
         });
 
         $testDeferred->getFuture()->await();
 
-        self::assertTrue($testData->val, 'Expected our test to run on loop to completion');
+        self::assertSame(1, $testData->val);
     }
 
     public function testReturningFuture(): Future
@@ -65,7 +66,8 @@ class AsyncTestCaseTest extends AsyncTestCase
         EventLoop::delay(0.1, fn () => $deferred->complete('value'));
 
         $returnValue = $deferred->getFuture();
-        self::assertInstanceOf(Future::class, $returnValue); // An assertion is required for the test to pass
+        $this->expectNotToPerformAssertions();
+
         return $returnValue; // Return value used by testReturnValueFromDependentTest
     }
 
@@ -73,10 +75,11 @@ class AsyncTestCaseTest extends AsyncTestCase
     {
         $throwException = function (): void {
             delay(0.1);
-            throw new \Exception('threw the error');
+
+            throw new TestException('threw the error');
         };
 
-        $this->expectException(\Exception::class);
+        $this->expectException(TestException::class);
         $this->expectExceptionMessage('threw the error');
 
         return async($throwException);
@@ -91,7 +94,7 @@ class AsyncTestCaseTest extends AsyncTestCase
         });
     }
 
-    public function argumentSupportProvider(): array
+    public function provideArguments(): array
     {
         return [
             ['foo', 42, true],
@@ -99,11 +102,7 @@ class AsyncTestCaseTest extends AsyncTestCase
     }
 
     /**
-     * @param string $foo
-     * @param int    $bar
-     * @param bool   $baz
-     *
-     * @dataProvider argumentSupportProvider
+     * @dataProvider provideArguments
      */
     public function testArgumentSupport(string $foo, int $bar, bool $baz): void
     {
@@ -126,6 +125,7 @@ class AsyncTestCaseTest extends AsyncTestCase
     {
         $this->setTimeout(0.1);
         $this->expectNotToPerformAssertions();
+
         delay(0.05);
     }
 
@@ -158,8 +158,7 @@ class AsyncTestCaseTest extends AsyncTestCase
         $this->setMinimumRuntime(0.1);
 
         $this->expectException(AssertionFailedError::class);
-        $pattern = "/Expected test to take at least 0.100s but instead took 0.(\d+)s/";
-        $this->expectExceptionMessageMatches($pattern);
+        $this->expectExceptionMessageMatches("/Expected test to take at least 0.100s but instead took 0.\d{3}s/");
 
         delay(0.05);
     }
@@ -179,7 +178,7 @@ class AsyncTestCaseTest extends AsyncTestCase
 
         EventLoop::queue(static fn () => throw new TestException('message'));
 
-        $this->expectException(LoopCaughtException::class);
+        $this->expectException(UnhandledException::class);
         $pattern = "/(.+) thrown to event loop error handler: (.*)/";
         $this->expectExceptionMessageMatches($pattern);
 

@@ -11,12 +11,13 @@ use Revolt\EventLoop;
 use Revolt\EventLoop\Driver\TracingDriver;
 use function Amp\async;
 use function Amp\Future\all;
+use function Amp\now;
 
 abstract class AsyncTestCase extends PHPUnitTestCase
 {
     private const RUNTIME_PRECISION = 2;
 
-    private DeferredFuture $deferred;
+    private DeferredFuture $deferredFuture;
 
     private string $timeoutId;
 
@@ -48,15 +49,14 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     protected function setUp(): void
     {
         $this->setUpInvoked = true;
-
-        $this->deferred = new DeferredFuture();
+        $this->deferredFuture = new DeferredFuture();
 
         EventLoop::setErrorHandler(function (\Throwable $exception): void {
-            if ($this->deferred->isComplete()) {
+            if ($this->deferredFuture->isComplete()) {
                 return;
             }
 
-            $this->deferred->error(new LoopCaughtException($exception));
+            $this->deferredFuture->error(new UnhandledException($exception));
         });
     }
 
@@ -73,11 +73,12 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 
         parent::setName($this->realTestName);
 
-        $start = \microtime(true);
+        $start = now();
 
         try {
             try {
-                [$returnValue] = all([
+                [, $returnValue] = all([
+                    $this->deferredFuture->getFuture(),
                     async(function () use ($args): mixed {
                         try {
                             $result = ([$this, $this->realTestName])(...$args);
@@ -93,12 +94,11 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 
                             return $result;
                         } finally {
-                            if (!$this->deferred->isComplete()) {
-                                $this->deferred->complete();
+                            if (!$this->deferredFuture->isComplete()) {
+                                $this->deferredFuture->complete();
                             }
                         }
                     }),
-                    $this->deferred->getFuture()
                 ]);
             } finally {
                 $this->cleanup();
@@ -111,7 +111,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
             \gc_collect_cycles(); // Throw from as many destructors as possible.
         }
 
-        $end = \microtime(true);
+        $end = now();
 
         if ($this->minimumRuntime > 0) {
             $actualRuntime = \round($end - $start, self::RUNTIME_PRECISION);
@@ -133,27 +133,27 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     }
 
     /**
-     * Fails the test if the loop does not run for at least the given amount of time.
+     * Fails the test if it does not run for at least the given amount of time.
      *
-     * @param float $runtime Required run time in seconds.
+     * @param float $seconds Required runtime in seconds.
      */
-    final protected function setMinimumRuntime(float $runtime): void
+    final protected function setMinimumRuntime(float $seconds): void
     {
-        if ($runtime < 0.001) {
-            throw new \Error('Minimum runtime must be at least 0.001s');
+        if ($seconds <= 0) {
+            throw new \Error('Minimum runtime must be greater than 0, got ' . $seconds);
         }
 
-        $this->minimumRuntime = \round($runtime, self::RUNTIME_PRECISION);
+        $this->minimumRuntime = \round($seconds, self::RUNTIME_PRECISION);
     }
 
     /**
-     * Fails the test (and stops the loop) after the given timeout.
+     * Fails the test (and stops the event loop) after the given timeout.
      *
-     * @param float $timeout Timeout in seconds.
+     * @param float $seconds Timeout in seconds.
      */
-    final protected function setTimeout(float $timeout): void
+    final protected function setTimeout(float $seconds): void
     {
-        $this->timeoutId = EventLoop::delay($timeout, function () use ($timeout): void {
+        $this->timeoutId = EventLoop::delay($seconds, function () use ($seconds): void {
             EventLoop::setErrorHandler(null);
 
             $additionalInfo = '';
@@ -167,14 +167,18 @@ abstract class AsyncTestCase extends PHPUnitTestCase
                 $additionalInfo .= "\r\n\r\nSet REVOLT_DEBUG_TRACE_WATCHERS=true as environment variable to trace watchers keeping the loop running.";
             }
 
-            if ($this->deferred->isComplete()) {
+            if ($this->deferredFuture->isComplete()) {
                 return;
             }
 
             try {
-                $this->fail(\sprintf('Expected test to complete before %0.3fs time limit%s', $timeout, $additionalInfo));
+                $this->fail(\sprintf(
+                    'Expected test to complete before %0.3fs time limit%s',
+                    $seconds,
+                    $additionalInfo
+                ));
             } catch (AssertionFailedError $e) {
-                $this->deferred->error($e);
+                $this->deferredFuture->error($e);
             }
         });
 
@@ -182,7 +186,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     }
 
     /**
-     * @param int $invocationCount Number of times the callback must be invoked or the test will fail.
+     * @param int           $invocationCount Number of times the callback must be invoked or the test will fail.
      * @param callable|null $returnCallback Callable providing a return value for the callback.
      *
      * @return \Closure&MockObject Mock object having only an __invoke method.
