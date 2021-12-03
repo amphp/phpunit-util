@@ -9,6 +9,7 @@ use Amp\PHPUnit\AsyncTestCase;
 use Amp\Promise;
 use PHPUnit\Framework\AssertionFailedError;
 use function Amp\call;
+use function Amp\delay;
 
 class AsyncTestCaseTest extends AsyncTestCase
 {
@@ -53,7 +54,7 @@ class AsyncTestCaseTest extends AsyncTestCase
     {
         $throwException = function () {
             return call(function () {
-                yield new Delayed(100);
+                yield delay(100);
                 throw new \Exception('threw the error');
             });
         };
@@ -117,7 +118,7 @@ class AsyncTestCaseTest extends AsyncTestCase
     public function testSetTimeout(): \Generator
     {
         $this->setTimeout(100);
-        $this->assertNull(yield new Delayed(50));
+        $this->assertNull(yield delay(50));
     }
 
     public function testSetTimeoutWithCoroutine(): \Generator
@@ -127,7 +128,7 @@ class AsyncTestCaseTest extends AsyncTestCase
         $this->expectException(AssertionFailedError::class);
         $this->expectExceptionMessage('Expected test to complete before 100ms time limit');
 
-        yield new Delayed(200);
+        yield delay(200);
     }
 
     public function testSetTimeoutWithWatcher()
@@ -142,14 +143,10 @@ class AsyncTestCaseTest extends AsyncTestCase
 
     public function testSetMinimumRunTime(): \Generator
     {
-        $this->setMinimumRuntime(100);
-        $func = function () {
-            yield new Delayed(75);
-            return 'finished';
-        };
+        $this->setMinimumRuntime(1000);
 
         $this->expectException(AssertionFailedError::class);
-        $pattern = "/Expected test to take at least 100ms but instead took (\d+)ms/";
+        $pattern = "/Expected test to take at least 1000ms but instead took (\d+)ms/";
         if (\method_exists($this, 'expectExceptionMessageMatches')) {
             // PHPUnit 8+
             $this->expectExceptionMessageMatches($pattern);
@@ -157,14 +154,15 @@ class AsyncTestCaseTest extends AsyncTestCase
             // PHPUnit 6-7
             $this->expectExceptionMessageRegExp($pattern);
         }
-        yield call($func);
+
+        yield delay(750);
     }
 
     public function testSetMinimumRunTimeWithWatchersOnly()
     {
-        $this->setMinimumRuntime(100);
-        $this->setTimeout(200);
-        Loop::delay(100, $this->createCallback(1));
+        $this->setMinimumRuntime(1000);
+        $this->setTimeout(2000);
+        Loop::delay(1500, $this->createCallback(1));
     }
 
     public function testUnresolvedPromise(): Promise
