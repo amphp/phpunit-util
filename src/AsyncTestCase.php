@@ -196,6 +196,10 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     {
         $this->timeout = $timeout;
 
+        if (isset($this->timeoutId)) {
+            Loop::cancel($this->timeoutId);
+        }
+
         $this->timeoutId = Loop::delay($timeout, function () use ($timeout) {
             Loop::stop();
             Loop::setErrorHandler(null);

@@ -121,6 +121,16 @@ class AsyncTestCaseTest extends AsyncTestCase
         $this->assertNull(yield delay(250));
     }
 
+    public function testSetTimeoutReplace(): \Generator
+    {
+        $this->setTimeout(500);
+        $this->setTimeout(1000);
+
+        yield delay(750);
+
+        $this->expectNotToPerformAssertions();
+    }
+
     public function testSetTimeoutWithCoroutine(): \Generator
     {
         $this->setTimeout(100);
