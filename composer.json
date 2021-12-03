@@ -1,6 +1,6 @@
 {
     "name": "amphp/phpunit-util",
-    "homepage": "http://amphp.org/phpunit-util",
+    "homepage": "https://amphp.org/phpunit-util",
     "description": "Helper package to ease testing with PHPUnit.",
     "license": "MIT",
     "authors": [
@@ -14,8 +14,7 @@
         }
     ],
     "support": {
-        "issues": "https://github.com/amphp/phpunit-util/issues",
-        "irc": "irc://irc.freenode.org/amphp"
+        "issues": "https://github.com/amphp/phpunit-util/issues"
     },
     "require": {
         "php": ">=7.1",
