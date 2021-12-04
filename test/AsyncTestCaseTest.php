@@ -8,6 +8,7 @@ use Amp\PHPUnit\AsyncTestCase;
 use Amp\PHPUnit\TestException;
 use Amp\PHPUnit\UnhandledException;
 use PHPUnit\Framework\AssertionFailedError;
+use PHPUnit\Framework\ExpectationFailedException;
 use Revolt\EventLoop;
 use function Amp\async;
 use function Amp\delay;
@@ -175,10 +176,7 @@ class AsyncTestCaseTest extends AsyncTestCase
 
     public function testCreateCallback(): void
     {
-        $mock = $this->createCallback(1, function (int $value): int {
-            return $value + 1;
-        });
-
+        $mock = $this->createCallback(1, fn (int $value) => $value + 1, [1]);
         self::assertSame(2, $mock(1));
     }
 

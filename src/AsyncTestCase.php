@@ -191,10 +191,15 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     /**
      * @param int           $invocationCount Number of times the callback must be invoked or the test will fail.
      * @param callable|null $returnCallback Callable providing a return value for the callback.
+     * @param array         $expectArgs Arguments expected to be passed to the callback.
      *
      * @return \Closure
      */
-    final protected function createCallback(int $invocationCount, ?callable $returnCallback = null): \Closure
+    final protected function createCallback(
+        int $invocationCount,
+        ?callable $returnCallback = null,
+        array $expectArgs = [],
+    ): \Closure
     {
         $mock = $this->createMock(CallbackStub::class);
         $invocationMocker = $mock->expects(self::exactly($invocationCount))
@@ -202,6 +207,10 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 
         if ($returnCallback) {
             $invocationMocker->willReturnCallback($returnCallback);
+        }
+
+        if ($expectArgs) {
+            $invocationMocker->with(...$expectArgs);
         }
 
         return \Closure::fromCallable($mock);
