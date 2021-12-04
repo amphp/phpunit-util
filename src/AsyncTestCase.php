@@ -5,7 +5,6 @@ namespace Amp\PHPUnit;
 use Amp\DeferredFuture;
 use Amp\Future;
 use PHPUnit\Framework\AssertionFailedError;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase as PHPUnitTestCase;
 use Revolt\EventLoop;
 use Revolt\EventLoop\Driver\TracingDriver;
@@ -193,9 +192,9 @@ abstract class AsyncTestCase extends PHPUnitTestCase
      * @param int           $invocationCount Number of times the callback must be invoked or the test will fail.
      * @param callable|null $returnCallback Callable providing a return value for the callback.
      *
-     * @return \Closure&MockObject Mock object having only an __invoke method.
+     * @return \Closure
      */
-    final protected function createCallback(int $invocationCount, callable $returnCallback = null): \Closure
+    final protected function createCallback(int $invocationCount, ?callable $returnCallback = null): \Closure
     {
         $mock = $this->createMock(CallbackStub::class);
         $invocationMocker = $mock->expects(self::exactly($invocationCount))
