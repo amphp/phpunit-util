@@ -8,7 +8,6 @@ use Amp\PHPUnit\AsyncTestCase;
 use Amp\PHPUnit\TestException;
 use Amp\PHPUnit\UnhandledException;
 use PHPUnit\Framework\AssertionFailedError;
-use PHPUnit\Framework\ExpectationFailedException;
 use Revolt\EventLoop;
 use function Amp\async;
 use function Amp\delay;
