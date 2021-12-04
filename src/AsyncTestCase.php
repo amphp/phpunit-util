@@ -187,8 +187,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         int $invocationCount,
         ?callable $returnCallback = null,
         array $expectArgs = [],
-    ): \Closure
-    {
+    ): \Closure {
         $mock = $this->createMock(CallbackStub::class);
         $invocationMocker = $mock->expects(self::exactly($invocationCount))
             ->method('__invoke');
