@@ -6,7 +6,7 @@
 
 **Required PHP Version**
 
-- PHP 7.0+
+- PHP 7.1+
 
 ## Installation
 
@@ -32,26 +32,8 @@ class BarTest extends AsyncTestCase
     {
         $socket = yield Socket\connect('tcp://localhost:12345');
         yield $socket->write('foobar');
-        
+
         $this->assertSame('foobar', yield ByteStream\buffer($socket));
     }
 }
-```
-
-#### Deprecated Functionality
-
-This package also provides a PHPUnit `TestListener` to reset the global event loop after each test, but this is deprecated.
-
-```xml
-<phpunit>
-    <!-- ... -->
-
-    <!-- DEPRECATED, use AsyncTestCase instead -->
-    <listeners>
-        <!-- DEPRECATED, use AsyncTestCase instead --> 
-        <listener class="Amp\PHPUnit\LoopReset" />
-    </listeners>
-
-    <!-- ... -->
-</phpunit>
 ```

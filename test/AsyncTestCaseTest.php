@@ -123,10 +123,20 @@ class AsyncTestCaseTest extends AsyncTestCase
 
     public function testSetTimeout(): void
     {
-        $this->setTimeout(0.1);
+        $this->setTimeout(0.5);
         $this->expectNotToPerformAssertions();
 
-        delay(0.05);
+        delay(0.25);
+    }
+
+    public function testSetTimeoutReplace(): void
+    {
+        $this->setTimeout(0.5);
+        $this->setTimeout(1);
+
+        delay(0.75);
+
+        $this->expectNotToPerformAssertions();
     }
 
     public function testSetTimeoutWithFuture(): Future
@@ -155,12 +165,12 @@ class AsyncTestCaseTest extends AsyncTestCase
 
     public function testSetMinimumRunTime(): void
     {
-        $this->setMinimumRuntime(0.1);
+        $this->setMinimumRuntime(1);
 
         $this->expectException(AssertionFailedError::class);
-        $this->expectExceptionMessageMatches("/Expected test to take at least 0.100s but instead took 0.\d{3}s/");
+        $this->expectExceptionMessageMatches("/Expected test to take at least 1.000s but instead took 0.\d{3}s/");
 
-        delay(0.05);
+        delay(0.5);
     }
 
     public function testCreateCallback(): void

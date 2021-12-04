@@ -153,6 +153,10 @@ abstract class AsyncTestCase extends PHPUnitTestCase
      */
     final protected function setTimeout(float $seconds): void
     {
+        if (isset($this->timeoutId)) {
+            EventLoop::cancel($this->timeoutId);
+        }
+
         $this->timeoutId = EventLoop::delay($seconds, function () use ($seconds): void {
             EventLoop::setErrorHandler(null);
 
