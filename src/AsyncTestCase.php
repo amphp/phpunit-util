@@ -37,14 +37,6 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         $this->realTestName = $name;
     }
 
-    /**
-     * Execute any needed cleanup after the test before loop watchers are checked.
-     */
-    protected function cleanup(): void
-    {
-        // Empty method in base class.
-    }
-
     protected function setUp(): void
     {
         $this->setUpInvoked = true;
@@ -75,33 +67,29 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         $start = now();
 
         try {
-            try {
-                [, $returnValue] = all([
-                    $this->deferredFuture->getFuture(),
-                    async(function () use ($args): mixed {
-                        try {
-                            $result = ([$this, $this->realTestName])(...$args);
-                            if ($result instanceof Future) {
-                                $result = $result->await();
-                            }
-
-                            // Force an extra tick of the event loop to ensure any uncaught exceptions are
-                            // forwarded to the event loop handler before the test ends.
-                            $deferred = new DeferredFuture();
-                            EventLoop::defer(static fn () => $deferred->complete());
-                            $deferred->getFuture()->await();
-
-                            return $result;
-                        } finally {
-                            if (!$this->deferredFuture->isComplete()) {
-                                $this->deferredFuture->complete();
-                            }
+            [, $returnValue] = all([
+                $this->deferredFuture->getFuture(),
+                async(function () use ($args): mixed {
+                    try {
+                        $result = ([$this, $this->realTestName])(...$args);
+                        if ($result instanceof Future) {
+                            $result = $result->await();
                         }
-                    }),
-                ]);
-            } finally {
-                $this->cleanup();
-            }
+
+                        // Force an extra tick of the event loop to ensure any uncaught exceptions are
+                        // forwarded to the event loop handler before the test ends.
+                        $deferred = new DeferredFuture();
+                        EventLoop::defer(static fn () => $deferred->complete());
+                        $deferred->getFuture()->await();
+
+                        return $result;
+                    } finally {
+                        if (!$this->deferredFuture->isComplete()) {
+                            $this->deferredFuture->complete();
+                        }
+                    }
+                }),
+            ]);
         } finally {
             if (isset($this->timeoutId)) {
                 EventLoop::cancel($this->timeoutId);
