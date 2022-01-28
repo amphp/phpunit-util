@@ -128,7 +128,7 @@ class AsyncTestCaseTest extends AsyncTestCase
         $this->expectNotToPerformAssertions();
     }
 
-    public function testSetTimeoutWithFuture(): Future
+    public function testSetTimeoutWithFuture(): void
     {
         $this->setTimeout(0.1);
 
@@ -137,9 +137,13 @@ class AsyncTestCaseTest extends AsyncTestCase
 
         $deferred = new DeferredFuture;
 
-        EventLoop::delay(0.2, fn () => $deferred->complete());
+        $watcher = EventLoop::delay(0.2, fn () => $deferred->complete());
 
-        return $deferred->getFuture();
+        try {
+            $deferred->getFuture()->await();
+        } finally {
+            EventLoop::cancel($watcher);
+        }
     }
 
     public function testSetTimeoutWithAwait(): void
