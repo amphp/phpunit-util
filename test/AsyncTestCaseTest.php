@@ -6,9 +6,9 @@ use Amp\DeferredFuture;
 use Amp\Future;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\PHPUnit\TestException;
-use Amp\PHPUnit\UnhandledException;
 use PHPUnit\Framework\AssertionFailedError;
 use Revolt\EventLoop;
+use Revolt\EventLoop\UncaughtThrowable;
 use function Amp\async;
 use function Amp\delay;
 
@@ -174,8 +174,8 @@ class AsyncTestCaseTest extends AsyncTestCase
 
         EventLoop::queue(static fn () => throw new TestException('message'));
 
-        $this->expectException(UnhandledException::class);
-        $pattern = "/(.+) thrown to event loop error handler: (.*)/";
+        $this->expectException(UncaughtThrowable::class);
+        $pattern = "/(.+) thrown in event loop callback (.*)/";
         $this->expectExceptionMessageMatches($pattern);
 
         (new DeferredFuture)->getFuture()->await();

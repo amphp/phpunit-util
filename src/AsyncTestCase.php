@@ -8,8 +8,7 @@ use PHPUnit\Framework\AssertionFailedError;
 use PHPUnit\Framework\TestCase as PHPUnitTestCase;
 use Revolt\EventLoop;
 use Revolt\EventLoop\Driver\TracingDriver;
-use function Amp\async;
-use function Amp\Future\all;
+use Revolt\EventLoop\UncaughtThrowable;
 use function Amp\now;
 
 abstract class AsyncTestCase extends PHPUnitTestCase
@@ -68,6 +67,9 @@ abstract class AsyncTestCase extends PHPUnitTestCase
             $deferred = new DeferredFuture();
             EventLoop::defer(static fn () => $deferred->complete());
             $deferred->getFuture()->await();
+        } catch (UncaughtThrowable $exception) {
+            $previous = $exception->getPrevious();
+            throw $previous instanceof AssertionFailedError ? $previous : $exception;
         } finally {
             if (isset($this->timeoutId)) {
                 EventLoop::cancel($this->timeoutId);
