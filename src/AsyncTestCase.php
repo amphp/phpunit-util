@@ -9,7 +9,6 @@ use PHPUnit\Framework\TestCase as PHPUnitTestCase;
 use Revolt\EventLoop;
 use Revolt\EventLoop\Driver\TracingDriver;
 use function Amp\async;
-use function Amp\Future\all;
 use function Amp\now;
 
 abstract class AsyncTestCase extends PHPUnitTestCase
@@ -67,7 +66,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         $start = now();
 
         try {
-            [, $returnValue] = all([
+            [, $returnValue] = Future\await([
                 $this->deferredFuture->getFuture(),
                 async(function () use ($args): mixed {
                     try {
