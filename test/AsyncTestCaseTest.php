@@ -101,8 +101,6 @@ class AsyncTestCaseTest extends AsyncTestCase
     }
 
     /**
-     * @param string|null $value
-     *
      * @depends testReturningFuture
      */
     public function testReturnValueFromDependentTest(string $value = null): void

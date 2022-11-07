@@ -56,7 +56,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         if (!$this->setUpInvoked) {
             self::fail(\sprintf(
                 '%s::setUp() overrides %s::setUp() without calling the parent method',
-                \str_replace("\0", '@', \get_class($this)), // replace NUL-byte in anonymous class name
+                \str_replace("\0", '@', static::class), // replace NUL-byte in anonymous class name
                 self::class
             ));
         }
@@ -179,8 +179,6 @@ abstract class AsyncTestCase extends PHPUnitTestCase
      * @param int           $invocationCount Number of times the callback must be invoked or the test will fail.
      * @param callable|null $returnCallback Callable providing a return value for the callback.
      * @param array         $expectArgs Arguments expected to be passed to the callback.
-     *
-     * @return \Closure
      */
     final protected function createCallback(
         int $invocationCount,
