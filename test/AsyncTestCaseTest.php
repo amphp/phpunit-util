@@ -1,12 +1,9 @@
 <?php declare(strict_types=1);
 
-namespace Amp\PHPUnit\Test;
+namespace Amp\PHPUnit;
 
 use Amp\DeferredFuture;
 use Amp\Future;
-use Amp\PHPUnit\AsyncTestCase;
-use Amp\PHPUnit\TestException;
-use Amp\PHPUnit\UnhandledException;
 use PHPUnit\Framework\AssertionFailedError;
 use Revolt\EventLoop;
 use function Amp\async;

@@ -1,8 +1,7 @@
 <?php declare(strict_types=1);
 
-namespace Amp\PHPUnit\Test;
+namespace Amp\PHPUnit;
 
-use Amp\PHPUnit\AsyncTestCase;
 use PHPUnit\Framework\AssertionFailedError;
 
 class InvalidAsyncTestCaseTest extends AsyncTestCase

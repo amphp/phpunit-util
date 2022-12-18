@@ -32,7 +32,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Amp\\PHPUnit\\Test\\": "test"
+            "Amp\\PHPUnit\\": "test"
         }
     }
 }
