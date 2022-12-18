@@ -16,17 +16,14 @@
     "support": {
         "issues": "https://github.com/amphp/phpunit-util/issues"
     },
-    "minimum-stability": "beta",
-    "prefer-stable": true,
     "require": {
         "php": ">=8.1",
-        "ext-json": "*",
         "amphp/amp": "^3",
-        "revolt/event-loop": "^1 || ^0.2",
-        "phpunit/phpunit": "^9"
+        "phpunit/phpunit": "^9",
+        "revolt/event-loop": "^1 || ^0.2"
     },
     "require-dev": {
-        "amphp/php-cs-fixer-config": "^2-dev"
+        "amphp/php-cs-fixer-config": "^2"
     },
     "autoload": {
         "psr-4": {
