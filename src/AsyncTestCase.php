@@ -151,8 +151,6 @@ abstract class AsyncTestCase extends PHPUnitTestCase
             $driver = EventLoop::getDriver();
             if ($driver instanceof TracingDriver) {
                 $additionalInfo .= "\r\n\r\n" . $driver->dump();
-            } elseif (\class_exists(TracingDriver::class)) {
-                $additionalInfo .= "\r\n\r\nSet AMP_DEBUG_TRACE_WATCHERS=true as environment variable to trace watchers keeping the loop running.";
             } else {
                 $additionalInfo .= "\r\n\r\nSet REVOLT_DEBUG_TRACE_WATCHERS=true as environment variable to trace watchers keeping the loop running.";
             }
