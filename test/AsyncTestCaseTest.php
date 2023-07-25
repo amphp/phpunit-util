@@ -80,7 +80,7 @@ class AsyncTestCaseTest extends AsyncTestCase
         });
     }
 
-    public function provideArguments(): array
+    public static function provideArguments(): array
     {
         return [
             ['foo', 42, true],

@@ -27,15 +27,6 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 
     private bool $setUpInvoked = false;
 
-    /**
-     * @codeCoverageIgnore Invoked before code coverage data is being collected.
-     */
-    final public function setName(string $name): void
-    {
-        parent::setName($name);
-        $this->realTestName = $name;
-    }
-
     protected function setUp(): void
     {
         $this->setUpInvoked = true;
@@ -114,6 +105,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 
     final protected function runTest(): mixed
     {
+        $this->realTestName = $this->name();
         parent::setName('runAsyncTest');
         return parent::runTest();
     }
