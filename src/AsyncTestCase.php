@@ -241,7 +241,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
      *
      * @return callable|MockObject Mock object having only an __invoke method.
      */
-    final protected function createCallback(int $invocationCount, callable $returnCallback = null): callable
+    final protected function createCallback(int $invocationCount, ?callable $returnCallback = null): callable
     {
         $mock = $this->createMock(CallbackStub::class);
         $invocationMocker = $mock->expects($this->exactly($invocationCount))
