@@ -92,10 +92,6 @@ class AsyncTestCaseTest extends AsyncTestCase
     }
 
     /**
-     * @param string $foo
-     * @param int    $bar
-     * @param bool   $baz
-     *
      * @dataProvider argumentSupportProvider
      */
     public function testArgumentSupport(string $foo, int $bar, bool $baz)
@@ -106,11 +102,9 @@ class AsyncTestCaseTest extends AsyncTestCase
     }
 
     /**
-     * @param string|null $value
-     *
      * @depends testReturningPromise
      */
-    public function testReturnValueFromDependentTest(string $value = null)
+    public function testReturnValueFromDependentTest(?string $value = null)
     {
         $this->assertSame('value', $value);
     }

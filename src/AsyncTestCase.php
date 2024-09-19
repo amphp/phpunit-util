@@ -54,7 +54,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         if (!$this->setUpInvoked) {
             $this->fail(\sprintf(
                 '%s::setUp() overrides %s::setUp() without calling the parent method',
-                \str_replace("\0", '@', \get_class($this)), // replace NUL-byte in anonymous class name
+                \str_replace("\0", '@', static::class), // replace NUL-byte in anonymous class name
                 self::class
             ));
         }
@@ -129,7 +129,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         } catch (\Throwable $exception) {
             throw new \Error(\sprintf(
                 '%s::setUpAsync() failed',
-                \str_replace("\0", '@', \get_class($this)) // replace NUL-byte in anonymous class name
+                \str_replace("\0", '@', static::class) // replace NUL-byte in anonymous class name
             ), 0, $exception);
         }
 
@@ -144,7 +144,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         } catch (\Throwable $exception) {
             throw new \Error(\sprintf(
                 '%s::tearDownAsync() failed',
-                \str_replace("\0", '@', \get_class($this)) // replace NUL-byte in anonymous class name
+                \str_replace("\0", '@', static::class) // replace NUL-byte in anonymous class name
             ), 0, $exception);
         } finally {
             if (isset($testException)) {
@@ -256,11 +256,6 @@ abstract class AsyncTestCase extends PHPUnitTestCase
 
     /**
      * Specialized Amp\call that stores the generator if present for debugging purposes.
-     *
-     * @param callable $callback
-     * @param mixed    ...$args
-     *
-     * @return Promise
      */
     private function call(callable $callback, ...$args): Promise
     {
