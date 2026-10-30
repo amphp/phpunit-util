@@ -11,7 +11,7 @@ class InvalidAsyncTestCaseTest extends AsyncTestCase
         // No call to parent::setUp()
 
         $this->expectException(AssertionFailedError::class);
-        $this->expectExceptionMessageIsOrContains('without calling the parent method');
+        $this->expectExceptionMessage('without calling the parent method');
     }
 
     public function testMethod()

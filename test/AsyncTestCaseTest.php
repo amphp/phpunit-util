@@ -68,7 +68,7 @@ class AsyncTestCaseTest extends AsyncTestCase
         };
 
         $this->expectException(TestException::class);
-        $this->expectExceptionMessageIsOrContains('threw the error');
+        $this->expectExceptionMessage('threw the error');
 
         return async($throwException);
     }
@@ -126,7 +126,7 @@ class AsyncTestCaseTest extends AsyncTestCase
         $this->setTimeout(0.1);
 
         $this->expectException(AssertionFailedError::class);
-        $this->expectExceptionMessageIsOrContains('Expected test to complete before 0.100s time limit');
+        $this->expectExceptionMessage('Expected test to complete before 0.100s time limit');
 
         $deferred = new DeferredFuture;
 
@@ -140,7 +140,7 @@ class AsyncTestCaseTest extends AsyncTestCase
         $this->setTimeout(0.1);
 
         $this->expectException(AssertionFailedError::class);
-        $this->expectExceptionMessageIsOrContains('Expected test to complete before 0.100s time limit');
+        $this->expectExceptionMessage('Expected test to complete before 0.100s time limit');
 
         delay(0.2);
     }

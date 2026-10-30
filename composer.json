@@ -17,9 +17,9 @@
         "issues": "https://github.com/amphp/phpunit-util/issues"
     },
     "require": {
-        "php": ">=8.4",
+        "php": ">=8.3",
         "amphp/amp": "^3",
-        "phpunit/phpunit": "^13",
+        "phpunit/phpunit": "^12 | ^13",
         "revolt/event-loop": "^1"
     },
     "require-dev": {
