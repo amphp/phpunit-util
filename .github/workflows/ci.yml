@@ -12,12 +12,24 @@ jobs:
           - operating-system: 'ubuntu-latest'
             php-version: '8.1'
 
+          - operating-system: 'ubuntu-latest'
+            php-version: '8.2'
+
+          - operating-system: 'ubuntu-latest'
+            php-version: '8.3'
+
+          - operating-system: 'ubuntu-latest'
+            php-version: '8.4'
+
+          - operating-system: 'ubuntu-latest'
+            php-version: '8.5'
+
           - operating-system: 'windows-latest'
-            php-version: '8.1'
+            php-version: '8.5'
             job-description: 'on Windows'
 
           - operating-system: 'macos-latest'
-            php-version: '8.1'
+            php-version: '8.5'
             job-description: 'on macOS'
 
     name: PHP ${{ matrix.php-version }} ${{ matrix.job-description }}
@@ -31,7 +43,7 @@ jobs:
           git config --global core.eol lf
 
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -44,7 +56,7 @@ jobs:
         run: echo "::set-output name=dir::$(composer config cache-dir)"
 
       - name: Cache dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v6
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: composer-${{ runner.os }}-${{ matrix.php-version }}-${{ hashFiles('**/composer.*') }}-${{ matrix.composer-flags }}
