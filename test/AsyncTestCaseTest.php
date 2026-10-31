@@ -100,7 +100,7 @@ class AsyncTestCaseTest extends AsyncTestCase
     /**
      * @depends testReturningFuture
      */
-    public function testReturnValueFromDependentTest(string $value = null): void
+    public function testReturnValueFromDependentTest(?string $value = null): void
     {
         self::assertSame('value', $value);
     }
