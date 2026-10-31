@@ -1,7 +1,7 @@
 # amphp/phpunit-util
 
 AMPHP is a collection of event-driven libraries for PHP designed with fibers and concurrency in mind.
-`amphp/phpunit-util` is a small helper package to ease testing with PHPUnit.
+`amphp/phpunit-util` is a small helper package to ease testing with [PHPUnit](https://github.com/sebastianbergmann/phpunit/).
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)
 
@@ -13,7 +13,14 @@ This package can be installed as a [Composer](https://getcomposer.org/) dependen
 composer require --dev amphp/phpunit-util
 ```
 
-The package requires PHP 8.1 or later.
+The package requires PHP 8.1 or later and PHPUnit 9 or 12+ (PHPUnit 10 and 11 are _not_ supported).
+
+#### PHP and PHPUnit versions supported
+
+| `amphp/phpunit-util` Version |  PHP | PHPUnit |
+|-----------------------------:|-----:|--------:|
+|                            3 | 8.1+ |       9 |
+|                            4 | 8.3+ |     12+ |
 
 ## Usage
 
@@ -28,7 +35,7 @@ use Amp\Socket;
 
 class BarTest extends AsyncTestCase
 {
-    // Each test case is executed as a coroutine and checked to run to completion
+    // Each test case is executed as a coroutine (within a separate fiber) and checked to run to completion
     public function test(): void
     {
         $socket = Socket\connect('tcp://localhost:12345');

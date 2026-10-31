@@ -22,19 +22,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
     /** @var float Minimum runtime in seconds. */
     private float $minimumRuntime = 0;
 
-    /** @var string Temporary storage for actual test name. */
-    private string $realTestName;
-
     private bool $setUpInvoked = false;
-
-    /**
-     * @codeCoverageIgnore Invoked before code coverage data is being collected.
-     */
-    final public function setName(string $name): void
-    {
-        parent::setName($name);
-        $this->realTestName = $name;
-    }
 
     protected function setUp(): void
     {
@@ -50,8 +38,7 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         });
     }
 
-    /** @internal */
-    final protected function runAsyncTest(mixed ...$args): mixed
+    final protected function invokeTestMethod(string $methodName, array $testArguments): mixed
     {
         if (!$this->setUpInvoked) {
             self::fail(\sprintf(
@@ -61,16 +48,14 @@ abstract class AsyncTestCase extends PHPUnitTestCase
             ));
         }
 
-        parent::setName($this->realTestName);
-
         $start = now();
 
         try {
             [, $returnValue] = Future\await([
                 $this->deferredFuture->getFuture(),
-                async(function () use ($args): mixed {
+                async(function () use ($methodName, $testArguments): mixed {
                     try {
-                        $result = ([$this, $this->realTestName])(...$args);
+                        $result = parent::invokeTestMethod($methodName, $testArguments);
                         if ($result instanceof Future) {
                             $result = $result->await();
                         }
@@ -110,12 +95,6 @@ abstract class AsyncTestCase extends PHPUnitTestCase
         }
 
         return $returnValue;
-    }
-
-    final protected function runTest(): mixed
-    {
-        parent::setName('runAsyncTest');
-        return parent::runTest();
     }
 
     /**
