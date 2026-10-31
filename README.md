@@ -13,7 +13,9 @@ This package can be installed as a [Composer](https://getcomposer.org/) dependen
 composer require --dev amphp/phpunit-util
 ```
 
-The package requires PHP 8.1 or later and PHPUnit 9 or 12+ (PHPUnit versions 10 and 11 are not supported). The methods provided by `Amp\PHPUnit\AsyncTestCase` by this library do not differ between supported PHPUnit versions. However, because `AsyncTestCase` extends `PHPUnit\Framework\TestCase`, there will be incompatibilities between the methods provided by different major versions of PHPUnit.
+The package requires PHP 8.1 or later and PHPUnit 9 or 12+ (PHPUnit 10 and 11 are _not_ supported).
+
+The methods provided by `Amp\PHPUnit\AsyncTestCase` by this library do not differ between supported PHPUnit versions. However, because `AsyncTestCase` extends `PHPUnit\Framework\TestCase`, there will be incompatibilities between the methods provided by different major versions of PHPUnit.
 
 #### PHP and PHPUnit versions supported
 
