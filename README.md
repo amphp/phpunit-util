@@ -22,7 +22,7 @@ The methods provided by `Amp\PHPUnit\AsyncTestCase` by this library do not diffe
 | amphp/phpunit-util | PHP  | PHPUnit |
 |--------------------|------|---------|
 | 3.0                | 8.1+ | 9.0     |
-| 3.1                | 8.3+ | 12.0+   |
+| 4.0                | 8.3+ | 12.0+   |
 
 ## Usage
 
