@@ -19,10 +19,10 @@ The methods provided by `Amp\PHPUnit\AsyncTestCase` by this library do not diffe
 
 #### PHP and PHPUnit versions supported
 
-| amphp/phpunit-util | PHP  | PHPUnit |
-|--------------------|------|---------|
-| 3.0                | 8.1+ | 9.0     |
-| 4.0                | 8.3+ | 12.0+   |
+| `amphp/phpunit-util` Version |  PHP | PHPUnit |
+|-----------------------------:|-----:|--------:|
+|                            3 | 8.1+ |       9 |
+|                            4 | 8.3+ |     12+ |
 
 ## Usage
 
